@@ -13,8 +13,10 @@ import Order from './Components/Order';
 
 function App() {
   return (
+    
     <Router>
       <Navbar />
+      <br/>
       
       <div className="container">
         <Routes>
@@ -31,6 +33,7 @@ function App() {
       </div>
       <Footer/>
     </Router>
+    
   );
 }
 
