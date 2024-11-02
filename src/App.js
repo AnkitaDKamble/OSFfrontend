@@ -9,6 +9,7 @@ import Contactus from './Components/Contactus';
 import Home from './Components/Home';
 import Careers from './Components/Careers';
 import Order from './Components/Order';
+import Logout from './Components/Logout';
 
 
 function App() {
@@ -28,7 +29,10 @@ function App() {
           
           <Route path="/careers" element={<Careers />} />
           <Route path="/order" element={<Order />} />
+          <Route path="/logout" element={<Logout />} />
           {/* Add more routes here as needed */}
+          <Route path="/home" element={<Home />} />
+          <Route path="/login" element={<Login />} />
         </Routes>
       </div>
       <Footer/>

@@ -39,6 +39,9 @@ const Navbar = () => {
                         <li className="nav-item">
                             <Link className={`nav-link ${location.pathname==="/login"? "active": ""}`} to="/login">Login</Link>
                         </li>
+                        <li className="nav-item">
+                            <Link className={`nav-link ${location.pathname==="/logout"? "active": ""}`} to="/logout">Logout</Link>
+                        </li>
 
                     </ul>
                    

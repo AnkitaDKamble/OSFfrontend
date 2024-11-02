@@ -1,3 +1,4 @@
+//Home.js
 import React from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import myImage from './First.png';
@@ -8,7 +9,7 @@ import fi from './fi.png';
 import s from './s.png';
 
 
-function Home() {
+const Home = () => {
   return (
     <div>
       {/* Hero Section */}
@@ -177,6 +178,6 @@ function Home() {
       </div>
     </div>
   );
-}
+};
 
 export default Home;
