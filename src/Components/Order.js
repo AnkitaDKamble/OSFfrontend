@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
-import wi1 from './wi1.png';
-import First from './First.png';
-import doors from './doors.jpg';
-import shed from './shed.jpeg';
-import ghar from './ghar.jpg';
-import jeena from './Jeena.jpeg';
-import r from './r.jpeg';
-import shu from './shu.jpeg';
-import more from './more.jpeg';
+import wi1 from './img/wi1.png';
+import First from './img/First.png';
+import doors from './img/doors.jpg';
+import shed from './img/shed.jpeg';
+import ghar from './img/ghar.jpg';
+import jeena from './img/Jeena.jpeg';
+import r from './img/r.jpeg';
+import shu from './img/shu.jpeg';
+import more from './img/more.jpeg';
 
 function Order() {
   const [showModal, setShowModal] = useState(false);

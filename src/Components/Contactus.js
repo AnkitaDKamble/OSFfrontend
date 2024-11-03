@@ -28,9 +28,10 @@ const Contactus = () => {
 
   return (
     <>
-    <div className="container py-5" style={{ backgroundColor: '#808080' }}>
+    <div className="container py-5" style={{ backgroundColor: '#000000',fontWeight: 'bold',fontFamily: 'Arial Black' }}>
     <h1 className="text-center text-light">Contact Us</h1>
       <div className="container-fluid bg-dark text-light footer mt-5 pt-5 wow fadeIn" data-wow-delay="0.1s">
+      
         <div className="container py-5">
           <div className="row g-5">
             <div className="col-lg-4 col-md-6">

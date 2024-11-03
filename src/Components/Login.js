@@ -62,7 +62,7 @@ const Login = () => {
   };
 
   return (
-    <div className="container d-flex justify-content-center align-items-center vh-100" style={{ backgroundColor: '#343a40' }}>
+    <div className="container d-flex justify-content-center align-items-center vh-100" style={{ backgroundColor: '#808080' }}>
       <div className="card bg-dark text-light" style={{ width: '25rem' }}>
         <div className="card-body">
           <h5 className="card-title text-center">Login</h5>

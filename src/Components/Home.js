@@ -1,12 +1,12 @@
 //Home.js
 import React from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
-import myImage from './First.png';
-import Second from './Second.png';
-import t from './t.png';
-import f from './f.png';
-import fi from './fi.png';
-import s from './s.png';
+import myImage from './img/First.png';
+import Second from './img/Second.png';
+import t from './img/t.png';
+import f from './img/f.png';
+import fi from './img/fi.png';
+import s from './img/s.png';
 
 
 const Home = () => {

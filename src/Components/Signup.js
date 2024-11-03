@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { Modal, Button } from 'react-bootstrap';
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation,useNavigate } from "react-router-dom";
 import axios from 'axios';
 
 const SignUp = () => {
   let location = useLocation();
+  const navigate = useNavigate()
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
@@ -73,7 +74,13 @@ const SignUp = () => {
     }
   };
 
-  const handleClose = () => setShowSuccess(false);
+  const handleClose = () => {
+    setShowSuccess(false);
+    setTimeout(() => {
+      navigate('/login'); // Redirect to login page after 2 seconds
+    }, 2000);
+  };
+  
 
   const handleMobileChange = (e) => {
     const value = e.target.value.replace(/[^0-9]/g, '');
