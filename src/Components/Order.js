@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import wi1 from './img/wi1.png';
 import First from './img/First.png';
 import doors from './img/doors.jpg';
@@ -16,13 +17,20 @@ function Order() {
   const [length, setLength] = useState('');
   const [width, setWidth] = useState('');
   const [error, setError] = useState('');
+  const navigate = useNavigate();
+
+  const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
 
   const handleOrderClick = (title) => {
+    if (!isLoggedIn) {
+      navigate('/login', { state: { from: '/order' } }); // Pass the current page to redirect after login
+      return;
+    }
     setOrderTitle(title);
     setShowModal(true);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     const lengthNum = parseFloat(length);
     const widthNum = parseFloat(width);
@@ -32,15 +40,35 @@ function Order() {
     } else {
       setError('');
       setShowModal(false);
+      
+      // Backend integration placeholder
+      await submitOrderToBackend(orderTitle, lengthNum, widthNum);
+
       setShowConfirmation(true);
       setLength('');
       setWidth('');
     }
   };
 
+  const submitOrderToBackend = async (title, length, width) => {
+    const orderData = { title, length, width };
+    try {
+      const response = await fetch('/api/place-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(orderData),
+      });
+      if (!response.ok) {
+        throw new Error('Failed to place order');
+      }
+      console.log('Order placed successfully');
+    } catch (error) {
+      console.error('Error submitting order:', error);
+    }
+  };
+
   const closeConfirmation = () => setShowConfirmation(false);
 
-  // List of items with image source and title
   const items = [
     { title: 'Window', image: wi1 },
     { title: 'Door', image: doors },
@@ -50,7 +78,7 @@ function Order() {
     { title: 'Jeena', image: jeena },
     { title: 'Railing', image: r },
     { title: 'Shutter', image: shu },
-    { title: 'And many more', image: more }
+    { title: 'And many more', image: more },
   ];
 
   return (
@@ -60,12 +88,19 @@ function Order() {
           <div className="col-md-4" key={index}>
             <div className="card" style={{ height: '400px', marginBottom: '20px' }}>
               <div style={{ height: '200px', overflow: 'hidden' }}>
-                <img className="card-img-top" src={item.image} alt={item.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <img
+                  className="card-img-top"
+                  src={item.image}
+                  alt={item.title}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                />
               </div>
               <div className="card-body">
                 <h5 className="card-title">{item.title}</h5>
                 <p className="card-text">150 Per Square foot</p>
-                <button onClick={() => handleOrderClick(item.title)} className="btn btn-primary">Place Order</button>
+                <button onClick={() => handleOrderClick(item.title)} className="btn btn-primary">
+                  Place Order
+                </button>
               </div>
             </div>
           </div>
@@ -116,7 +151,7 @@ function Order() {
         </div>
       )}
 
-      {/* Confirmation Popup Hello!!!*/}
+      {/* Confirmation Popup */}
       {showConfirmation && (
         <div className="modal show" style={{ display: 'block', zIndex: 1050, backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
           <div className="modal-dialog modal-dialog-centered">

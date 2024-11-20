@@ -34,7 +34,16 @@ const Login = () => {
         });
 
         if (response.ok) {
+          localStorage.setItem('isLoggedIn', true); // Update localStorage
           setShowSuccess(true);
+
+          // Retrieve the location from the login state (if any)
+          const redirectTo = location.state?.from || '/home'; // Default to '/home' if no state
+
+          setTimeout(() => {
+            window.dispatchEvent(new Event('storage')); // Trigger the storage event for Navbar
+            navigate(redirectTo); // Redirect to the previous page or home
+          }, 200);
         } else {
           setShowError(true);
         }
@@ -47,18 +56,16 @@ const Login = () => {
 
   const handleCloseSuccess = () => {
     setShowSuccess(false);
-    // Redirect to login after closing the modal
     setTimeout(() => {
       navigate('/home');
-    }, 200); // Delay for smoother experience
+    }, 200);
   };
 
   const handleCloseError = () => {
     setShowError(false);
-    // Redirect to login after closing the error modal
     setTimeout(() => {
       navigate('/login');
-    }, 200); // Delay for smoother experience
+    }, 200);
   };
 
   return (
@@ -67,73 +74,56 @@ const Login = () => {
         <div className="card-body">
           <h5 className="card-title text-center">Login</h5>
           <form onSubmit={handleSubmit}>
-            <div className="form-group mb-3">
-              <label htmlFor="mobile">Mobile Number</label>
+            <div className="mb-3">
+              <label htmlFor="mobile" className="form-label">Mobile Number</label>
               <input
-                type="tel"
-                className="form-control bg-secondary text-white"
+                type="text"
+                className="form-control"
                 id="mobile"
                 value={mobile}
                 onChange={(e) => setMobile(e.target.value)}
-                onKeyUp={validate}
-                required
-                maxLength="10"
+                placeholder="Enter your mobile number"
               />
-              {errors.mobile && <small className="text-danger">{errors.mobile}</small>}
+              {errors.mobile && <div className="text-danger">{errors.mobile}</div>}
             </div>
-            <div className="form-group mb-3">
-              <label htmlFor="password">Password</label>
+            <div className="mb-3">
+              <label htmlFor="password" className="form-label">Password</label>
               <input
                 type="password"
-                className="form-control bg-secondary text-white"
+                className="form-control"
                 id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
+                placeholder="Enter your password"
               />
             </div>
-            <button type="submit" className="btn btn-primary btn-block">
-              Login
-            </button>
-            <div className="text-center mt-3">
-              <span>
-                Not registered?{' '}
-                <Link
-                  className={`nav-link ${location.pathname === "/signup" ? "active" : ""} text-primary`}
-                  to="/signup"
-                  style={{ textDecoration: 'underline' }}
-                >
-                  Signup
-                </Link>
-              </span>
+            <button type="submit" className="btn btn-primary">Login</button>
+            <div className="mt-3 text-center">
+              <Link to="/signup" className="text-white">Don't have an account? Sign Up</Link>
             </div>
           </form>
         </div>
       </div>
 
-      {/* Modal for Successful Login */}
-      <Modal show={showSuccess} onHide={handleCloseSuccess} centered>
+      {/* Success Modal */}
+      <Modal show={showSuccess} onHide={handleCloseSuccess}>
         <Modal.Header closeButton>
           <Modal.Title>Login Successful</Modal.Title>
         </Modal.Header>
-        <Modal.Body>You have logged in successfully!</Modal.Body>
+        <Modal.Body>Welcome back!</Modal.Body>
         <Modal.Footer>
-          <Button variant="primary" onClick={handleCloseSuccess}>
-            Close
-          </Button>
+          <Button variant="secondary" onClick={handleCloseSuccess}>Close</Button>
         </Modal.Footer>
       </Modal>
 
-      {/* Modal for Login Error */}
-      <Modal show={showError} onHide={handleCloseError} centered>
+      {/* Error Modal */}
+      <Modal show={showError} onHide={handleCloseError}>
         <Modal.Header closeButton>
-          <Modal.Title>Error</Modal.Title>
+          <Modal.Title>Login Failed</Modal.Title>
         </Modal.Header>
         <Modal.Body>Invalid mobile number or password. Please try again.</Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={handleCloseError}>
-            Close
-          </Button>
+          <Button variant="secondary" onClick={handleCloseError}>Close</Button>
         </Modal.Footer>
       </Modal>
     </div>
