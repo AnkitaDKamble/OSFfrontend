@@ -147,7 +147,7 @@ const Home = () => {
                   <img className="img-fluid" src={f} alt="Reling" />
                 </div>
                 <div className="p-4 text-center border border-5 border-light border-top-0">
-                  <h4 className="mb-3">Reling</h4>
+                  <h4 className="mb-3">Reeling</h4>
                 </div>
               </div>
             </div>

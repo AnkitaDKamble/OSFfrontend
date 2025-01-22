@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { Card, Button, Modal, Form, Col, Row } from "react-bootstrap";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 const Service = () => {
   const [services, setServices] = useState([]);
   const [showModal, setShowModal] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [orderDetails, setOrderDetails] = useState({
     title: "",
     length: "",
@@ -13,12 +15,12 @@ const Service = () => {
   });
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const navigate = useNavigate();
 
   // Fetch services from the backend
   useEffect(() => {
     const fetchServices = async () => {
       try {
-        debugger
         const response = await axios.get("http://localhost:5000/api/services");
         setServices(response.data);
       } catch (err) {
@@ -34,14 +36,12 @@ const Service = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
 
-    // Dynamically update the amount if length and width are updated
     if (name === "length" || name === "width") {
       const updatedDetails = {
         ...orderDetails,
         [name]: value,
       };
 
-      // Find the price of the selected service
       const selectedService = services.find(
         (service) => service.title === updatedDetails.title
       );
@@ -51,7 +51,7 @@ const Service = () => {
         const calculatedAmount =
           updatedDetails.length * updatedDetails.width * pricePerSquareFoot;
 
-        updatedDetails.amount = calculatedAmount || 0; // Calculate dynamically
+        updatedDetails.amount = calculatedAmount || 0;
       }
 
       setOrderDetails(updatedDetails);
@@ -65,34 +65,33 @@ const Service = () => {
 
   // Handle order submission
   const handleOrderSubmit = async () => {
-    debugger
-    const token = localStorage.getItem("token"); // Use the correct key 'token' for JWT
+    const token = localStorage.getItem("token");
+
     const { title, length, width, amount } = orderDetails;
 
-    // Basic validation
+    if (!token) {
+      setShowModal(false);
+      setShowLoginPrompt(true);
+      return;
+    }
+
     if (!title || !length || !width || !amount) {
       setError("All fields are required.");
       return;
     }
 
-    if (!token) {
-      setError("You must be logged in to place an order.");
-      return;
-    }
-
     try {
-      debugger
       const response = await axios.post(
         "http://localhost:5000/api/create-order",
         {
           title,
           length,
           width,
-          orderAmount: amount, // Make sure the backend expects this field
+          orderAmount: amount,
         },
         {
           headers: {
-            Authorization: `Bearer ${token}`, // Pass token in header
+            Authorization: `Bearer ${token}`,
           },
         }
       );
@@ -115,8 +114,15 @@ const Service = () => {
     setError("");
   };
 
-  // Show modal and initialize order details
+  // Show modal and check login status
   const handleShowModal = (serviceTitle) => {
+    const token = localStorage.getItem("token");
+
+    if (!token) {
+      setShowLoginPrompt(true);
+      return;
+    }
+
     const selectedService = services.find(
       (service) => service.title === serviceTitle
     );
@@ -129,6 +135,11 @@ const Service = () => {
     });
 
     setShowModal(true);
+  };
+
+  const handleCloseLoginPrompt = () => {
+    setShowLoginPrompt(false);
+    navigate("/login");
   };
 
   return (
@@ -223,6 +234,21 @@ const Service = () => {
           </Button>
           <Button variant="primary" onClick={handleOrderSubmit}>
             Submit Order
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Login Prompt Modal */}
+      <Modal show={showLoginPrompt} onHide={() => setShowLoginPrompt(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Login Required</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <p>You need to log in to place an order. Please log in first.</p>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="primary" onClick={handleCloseLoginPrompt}>
+            OK
           </Button>
         </Modal.Footer>
       </Modal>

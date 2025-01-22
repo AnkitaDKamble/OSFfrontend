@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
 import { Modal, Button } from 'react-bootstrap';
-import { Link, useLocation,useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import axios from 'axios';
 
 const SignUp = () => {
   let location = useLocation();
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [mobile, setMobile] = useState('');
+  const [addr, setAddr] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errors, setErrors] = useState({});
@@ -30,6 +31,10 @@ const SignUp = () => {
       errors.mobile = 'Mobile number should be exactly 10 digits';
     }
 
+    if (!addr) {
+      errors.addr = 'Address is required';
+    }
+
     if (!password) {
       errors.password = 'Password is required';
     }
@@ -47,10 +52,11 @@ const SignUp = () => {
     if (validate()) {
       setIsLoading(true);
       try {
-        const response = await axios.post('http://localhost:5000/api/signup', {
+        const response = await axios.post('http://localhost:5000/addr', {
           username: name,
           email,
           mobile,
+          addr,
           password,
         });
 
@@ -59,10 +65,11 @@ const SignUp = () => {
         setName('');
         setEmail('');
         setMobile('');
+        setAddr('');
         setPassword('');
         setConfirmPassword('');
       } catch (error) {
-        console.error('Signup error details:', error); // Add this for full error details
+        console.error('Signup error details:', error);
         if (error.response && error.response.status === 400) {
           setErrors({ ...errors, email: 'User already exists' });
         } else {
@@ -80,7 +87,6 @@ const SignUp = () => {
       navigate('/login'); // Redirect to login page after 2 seconds
     }, 2000);
   };
-  
 
   const handleMobileChange = (e) => {
     const value = e.target.value.replace(/[^0-9]/g, '');
@@ -92,9 +98,14 @@ const SignUp = () => {
     setName(value);
   };
 
+  const handleAddrChange = (e) => {
+    const value = e.target.value; // No need for filtering here, as address can have spaces
+    setAddr(value);
+  };
+
   return (
     <div className="container d-flex justify-content-center align-items-center vh-100" style={{ backgroundColor: '#808080' }}>
-      <div className="card text-white bg-dark" style={{ width: '25rem' }}>
+      <div className="card text-white bg-dark" style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto', borderRadius: '10px' }}>
         <div className="card-body">
           <h5 className="card-title text-center">Sign Up</h5>
           <form onSubmit={handleSubmit}>
@@ -135,6 +146,18 @@ const SignUp = () => {
                 maxLength="10"
               />
               {errors.mobile && <small className="text-danger">{errors.mobile}</small>}
+            </div>
+            <div className="form-group">
+              <label htmlFor="address">Address</label>
+              <textarea
+                className="form-control bg-secondary text-white"
+                id="address"
+                value={addr}
+                onChange={handleAddrChange}
+                required
+                maxLength="100"
+              />
+              {errors.addr && <small className="text-danger">{errors.addr}</small>}
             </div>
             <div className="form-group">
               <label htmlFor="password">Password</label>

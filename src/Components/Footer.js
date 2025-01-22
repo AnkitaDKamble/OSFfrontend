@@ -28,14 +28,7 @@ const Footer = () => {
               </div>
             </div>
             <div className="col-lg-4 col-md-6">
-              <h4 className="text-light mb-4">Components</h4>
-              <Link className="btn btn-link" to="/">...</Link><br />
-              <Link className="btn btn-link" to="/">...</Link><br />
-              <Link className="btn btn-link" to="/">...</Link><br />
-              <Link className="btn btn-link" to="/">...</Link><br />
-              <Link className="btn btn-link" to="/">...</Link><br />
-              <Link className="btn btn-link" to="/">...</Link><br />
-              <Link className="btn btn-link" to="/">...</Link><br />
+             
             </div>
             <div className="col-lg-4 col-md-6">
               <h4 className="text-light text-white fw-bold mb-4">Quick Links</h4>
@@ -54,13 +47,7 @@ const Footer = () => {
               >
                 <strong>Order</strong>
               </Link><br />
-              <Link 
-                className={`nav-link ${location.pathname === "/careers" ? "active" : ""}`} 
-                to="/careers" 
-                onClick={handleScrollToTop}
-              >
-                Careers
-              </Link><br />
+             <br />
               <Link 
                 className={`nav-link ${location.pathname === "/contactus" ? "active" : ""}`} 
                 to="/contactus" 
