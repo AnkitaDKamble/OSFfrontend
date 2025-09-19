@@ -13,6 +13,10 @@ import MyOrder from './Components/MyOrder';
 import OrderDashboard from './Components/OrderDashboard';
 import Profile from './Components/Profile';
 import ServiceDashboard from './Components/ServiceDashboard';
+import OrderHistory from './Components/OrderHistory';
+import OrderHistoryDashboard from './Components/OrderHistoryDashboard';
+import ForgotAndResetPassword from './Components/ForgotAndResetPassword';
+
 
 function App() {
   const [isAdmin, setIsAdmin] = useState(false);
@@ -31,6 +35,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/signup" element={<Signup />} />
           <Route path="/login" element={<Login />} />
+          <Route path="/ForgotAndResetPassword" element={<ForgotAndResetPassword />} />
           <Route path="/aboutus" element={<Aboutus />} />
           <Route path="/contactus" element={<Contactus />} />
           <Route path="/myorder" element={<MyOrder />} />
@@ -39,6 +44,8 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/Orderdashboard" element={<OrderDashboard />} />
           <Route path="/Servicedashboard" element={<ServiceDashboard />} />
+          <Route path="/OrderHistory" element={<OrderHistory />} />
+          <Route path="/OrderHistoryDashboard" element={<OrderHistoryDashboard />} />
           {/* Add other routes as needed */}
         </Routes>
       </div>

@@ -28,50 +28,52 @@ const Footer = () => {
               </div>
             </div>
             <div className="col-lg-4 col-md-6">
-             
+
             </div>
             <div className="col-lg-4 col-md-6">
               <h4 className="text-light text-white fw-bold mb-4">Quick Links</h4>
-              
-              <Link 
-                className={`nav-link ${location.pathname === "/" ? "active" : ""}`} 
-                to="/" 
+
+              <Link
+                className={`nav-link ${location.pathname === "/" ? "active" : ""}`}
+                to="/"
                 onClick={handleScrollToTop}
               >
                 <strong>Home</strong>
               </Link><br />
-              <Link 
-                className={`nav-link ${location.pathname === "/order" ? "active" : ""}`} 
-                to="/order" 
+
+              <Link
+                className={`nav-link ${location.pathname === "/service" ? "active" : ""}`}
+                to="/Service"
                 onClick={handleScrollToTop}
               >
-                <strong>Order</strong>
+                <strong>Services</strong>
               </Link><br />
-             <br />
-              <Link 
-                className={`nav-link ${location.pathname === "/contactus" ? "active" : ""}`} 
-                to="/contactus" 
-                onClick={handleScrollToTop}
-              >
-                Contact Us
-              </Link><br />
-              <Link 
-                className={`nav-link ${location.pathname === "/aboutus" ? "active" : ""}`} 
-                to="/aboutus" 
+
+              <Link
+                className={`nav-link ${location.pathname === "/aboutus" ? "active" : ""}`}
+                to="/aboutus"
                 onClick={handleScrollToTop}
               >
                 About Us
               </Link><br />
-              <Link 
-                className={`nav-link ${location.pathname === "/signup" ? "active" : ""}`} 
-                to="/signup" 
+              <Link
+                className={`nav-link ${location.pathname === "/contactus" ? "active" : ""}`}
+                to="/contactus"
+                onClick={handleScrollToTop}
+              >
+                Contact Us
+              </Link><br />
+              
+              <Link
+                className={`nav-link ${location.pathname === "/signup" ? "active" : ""}`}
+                to="/signup"
                 onClick={handleScrollToTop}
               >
                 Sign Up
               </Link><br />
-              <Link 
-                className={`nav-link ${location.pathname === "/login" ? "active" : ""}`} 
-                to="/login" 
+              <Link
+                className={`nav-link ${location.pathname === "/login" ? "active" : ""}`}
+                to="/login"
                 onClick={handleScrollToTop}
               >
                 Log in

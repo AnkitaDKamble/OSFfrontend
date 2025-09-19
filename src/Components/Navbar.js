@@ -1,13 +1,19 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation,useNavigate } from "react-router-dom";
 import axios from 'axios';
 
 const Navbar = () => {
   const navigate = useNavigate();
+  let location = useLocation();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [customerName, setCustomerName] = useState('');
   const [role, setRole] = useState('');
 
+  
+  
+  const handleScrollToTop = () => {
+    window.scrollTo(0, 0); // Scroll to the top of the page
+  };
   useEffect(() => {
     const checkLoginStatus = async () => {
       const loggedIn = localStorage.getItem('isLoggedIn') === 'true';
@@ -30,7 +36,7 @@ const Navbar = () => {
         } catch (error) {
           console.error('Error fetching user data:', error);
           // Handle error, e.g., log out the user if token is invalid
-          handleLogout(); 
+          handleLogout();
         }
       }
     };
@@ -60,7 +66,7 @@ const Navbar = () => {
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-dark sticky-top">
       <div className="container-fluid">
-        <Link className="navbar-brand" to='/Hello'>Omkar Steel Fabricators</Link>
+        <Link className="navbar-brand" to='/Hello' onClick={handleScrollToTop}>Omkar Steel Fabricators</Link>
         <button
           className="navbar-toggler"
           type="button"
@@ -75,51 +81,57 @@ const Navbar = () => {
         <div className="collapse navbar-collapse" id="navbarSupportedContent">
           <ul className="navbar-nav me-auto mb-2 mb-lg-0">
             <li className="nav-item">
-              <Link className="nav-link" to="/">Home</Link>
+              <Link className="nav-link" to="/" onClick={handleScrollToTop}>Home</Link>
             </li>
             <li className="nav-item">
-              <Link className="nav-link" to="/Service">Services</Link>
+              <Link className="nav-link" to="/Service" onClick={handleScrollToTop}>Services</Link>
             </li>
 
             {/* Admin-specific links */}
             {isLoggedIn && role === 'admin' && (
               <>
                 <li className="nav-item">
-                  <Link className="nav-link" to="/OrderDashboard">Orders Dashboard</Link>
+                  <Link className="nav-link" to="/OrderDashboard"  onClick={handleScrollToTop}>Orders Dashboard</Link>
                 </li>
                 <li className="nav-item">
-                  <Link className="nav-link" to="/ServiceDashboard">Services Dashboard</Link>
+                  <Link className="nav-link" to="/OrderHistoryDashboard"  onClick={handleScrollToTop}>Orders History Dashboard</Link>
                 </li>
                 <li className="nav-item">
-                  <Link className="nav-link" to="/Profile">Profile</Link>
+                  <Link className="nav-link" to="/ServiceDashboard" onClick={handleScrollToTop}>Services Dashboard</Link>
+                </li>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/Profile" onClick={handleScrollToTop}>Profile</Link>
                 </li>
               </>
             )}
 
             {/* User-specific links */}
             {isLoggedIn && role === 'user' && (
-            
+
               <>
                 <li className="nav-item">
-                  <Link className="nav-link" to="/MyOrder">My Orders</Link>
+                  <Link className="nav-link" to="/MyOrder" onClick={handleScrollToTop}>My Orders</Link>
                 </li>
                 <li className="nav-item">
-                  <Link className="nav-link" to="/Profile">Profile</Link>
+                  <Link className="nav-link" to="/OrderHistory" onClick={handleScrollToTop}>Orders History</Link>
+                </li>
+                <li className="nav-item">
+                  <Link className="nav-link" to="/Profile" onClick={handleScrollToTop}>Profile</Link>
                 </li>
               </>
             )}
 
             <li className="nav-item">
-              <Link className="nav-link" to="/Aboutus">About Us</Link>
+              <Link className="nav-link" to="/Aboutus" onClick={handleScrollToTop}>About Us</Link>
             </li>
 
             {/* Contact Us for all users */}
+
             
-            {role !== 'user' && role !== 'admin' && (
               <li className="nav-item">
-                <Link className="nav-link" to="/Contactus">Contact Us</Link>
+                <Link className="nav-link" to="/Contactus" onClick={handleScrollToTop}>Contact Us</Link>
               </li>
-            )}
+           
           </ul>
           <div className="d-flex align-items-center">
             {isLoggedIn ? (

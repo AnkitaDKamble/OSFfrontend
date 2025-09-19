@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Modal, Button } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode'; 
+import { Link } from "react-router-dom";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const Login = () => {
@@ -90,38 +91,47 @@ const Login = () => {
         <div className="card-body">
           <h5 className="card-title text-center">Login</h5>
           <form onSubmit={handleSubmit}>
-            <div className="mb-3">
-              <label htmlFor="mobile" className="form-label">
-                Mobile Number
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                id="mobile"
-                value={mobile}
-                onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
-              />
-              {errors.mobile && <div className="text-danger">{errors.mobile}</div>}
-            </div>
-            <div className="mb-3">
-              <label htmlFor="password" className="form-label">
-                Password
-              </label>
-              <input
-                type="password"
-                className="form-control"
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-              {errors.password && <div className="text-danger">{errors.password}</div>}
-            </div>
-            <div className="d-grid">
-              <button type="submit" className="btn btn-warning">
-                Login
-              </button>
-            </div>
-          </form>
+  <div className="mb-3">
+    <label htmlFor="mobile" className="form-label">
+      Mobile Number
+    </label>
+    <input
+      type="text"
+      className="form-control"
+      id="mobile"
+      value={mobile}
+      onChange={(e) => setMobile(e.target.value.replace(/\D/g, ''))}
+    />
+    {errors.mobile && <div className="text-danger">{errors.mobile}</div>}
+  </div>
+  <div className="mb-3">
+    <label htmlFor="password" className="form-label">
+      Password
+    </label>
+    <input
+      type="password"
+      className="form-control"
+      id="password"
+      value={password}
+      onChange={(e) => setPassword(e.target.value)}
+    />
+    {errors.password && <div className="text-danger">{errors.password}</div>}
+  </div>
+  <div className="d-grid">
+    <button type="submit" className="btn btn-warning">
+      Login
+    </button>
+  </div>
+
+  {/* Forgot Password Link */}
+  <div className="text-center mt-3">
+    <Link to="/ForgotAndResetPassword" className="text-light text-decoration-none">
+  Forgot Password?
+</Link>
+
+  </div>
+</form>
+
         </div>
       </div>
 

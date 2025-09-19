@@ -1,15 +1,28 @@
-const express = require('express');  // Import express
-const bodyParser = require('body-parser');
-const cors = require('cors');
-const dotenv = require('dotenv');
-const bcrypt = require('bcrypt');
-const mongoose = require('mongoose');
-const session = require('express-session');
-const MongoDBStore = require('connect-mongodb-session')(session);
-const jwt = require('jsonwebtoken');  // Import jwt
-const serviceRoutes = require('./routes/serviceRoutes');
+import express from 'express';
+import bodyParser from 'body-parser';
+import cors from 'cors';
+import dotenv from 'dotenv';
+import bcrypt from 'bcrypt';
+import mongoose from 'mongoose';
+import session from 'express-session';
+import connectMongoDBSession from 'connect-mongodb-session';
+import jwt from 'jsonwebtoken';
+import multer from 'multer'; // For file uploads
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+import path from 'path';
+
+// Fix: Import the named 'sendOTP' function.
+// This is the only place it should be "declared" in this file.
+import { sendOTP } from './sendOTP.js';
+
+// Get the current directory name using import.meta.url
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
 dotenv.config();
-const path = require('path');
+
+const MongoDBStore = connectMongoDBSession(session);
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -22,7 +35,7 @@ app.use(cors({
 
 app.use(bodyParser.json());
 
-// Connect to MongoDB (Updated to use localhost)
+// Connect to MongoDB
 mongoose.connect('mongodb://127.0.0.1:27017/OSF', {
   useNewUrlParser: true,
   useUnifiedTopology: true
@@ -32,80 +45,193 @@ mongoose.connect('mongodb://127.0.0.1:27017/OSF', {
 
 // Setup session store
 const store = new MongoDBStore({
-  uri: 'mongodb://127.0.0.1:27017/OSF', // Updated to use localhost
+  uri: 'mongodb://127.0.0.1:27017/OSF',
   collection: 'sessions'
 });
 
-// Check for session store errors
 store.on('error', function (error) {
   console.log(error);
 });
 
 // Configure session middleware
 app.use(session({
-  secret: process.env.SESSION_SECRET || 'AnkitaDilipKamble', // Use environment variable for security
+  secret: process.env.SESSION_SECRET || 'AnkitaDilipKamble',
   resave: false,
   saveUninitialized: false,
   store: store,
   cookie: {
-    maxAge: 1000 * 60 * 60, // 1 hour session duration
-    sameSite: 'None', // Allow cookies to be sent in cross-site contexts
-    secure: false // Set to true if using HTTPS
+    maxAge: 1000 * 60 * 60,
+    sameSite: 'None',
+    secure: false // Set to true if using HTTPS in production
   }
 }));
 
-// User schema with last login timestamp
+// --- ALL Mongoose Schema Definitions (Consolidated) ---
+
+// User schema
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
   email: { type: String, required: false },
   mobile: { type: String, required: true, unique: true },
   password: { type: String, required: true },
-  role: { type: String, default: 'user' }, // Add the role field (default 'user')
-  addr: { type: String, required: false }, // Added addr field
-  lastLogin: { type: Date } // Added lastLogin field
+  role: { type: String, default: 'user' },
+  addr: { type: String, required: false },
+  lastLogin: { type: Date }
 });
-
 const User = mongoose.model('User', userSchema);
 
-// Order schema
+// Order schema (NOW INCLUDES feedback field)
 const orderSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   orderAmount: { type: Number, required: true },
-  title: { type: String, required: true },  // Add this line
+  title: { type: String, required: true },
   length: { type: Number, required: true },
   width: { type: Number, required: true },
   status: { type: String, default: 'pending' },
+  feedback: { type: String }, // Feedback field for delivered orders
   createdAt: { type: Date, default: Date.now }
 });
 const Order = mongoose.model('Order', orderSchema);
 
-// Signup route (Updated to /addr)
-app.post('/addr', async (req, res) => {
-  const { username, email, mobile, password } = req.body;
 
-  // Input validation for additional safety
+// OTP Schema
+const otpSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  otp: { type: String, required: true },
+  expiresAt: { type: Date, required: true },
+  verified: { type: Boolean, default: false },
+}, { timestamps: true });
+
+const OTP = mongoose.model('OTP', otpSchema);
+
+
+// Enquiry Schema
+const enquirySchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, required: false },
+  mobile: { type: String, required: true },
+  subject: { type: String, required: true },
+  message: { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+});
+const Enquiry = mongoose.model('Enquiry', enquirySchema);
+
+// Service Schema
+const serviceSchema = new mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+  },
+  imagePath: {
+    type: String,
+    //required: true, // Path or URL to the service image
+  },
+  pricePerSquareFoot: {
+    type: Number,
+    required: true,
+  },
+}, { timestamps: true });
+
+const Service = mongoose.model('Service', serviceSchema);
+
+
+// --- Middleware for JWT Verification ---
+const authenticateToken = (req, res, next) => {
+  const authHeader = req.headers.authorization;
+  const token = authHeader && authHeader.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ message: 'Unauthorized: Missing token' });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
+    if (err) {
+      console.error("JWT Verification Error:", err);
+      return res.status(403).json({ message: 'Forbidden: Invalid token' });
+    }
+    req.user = user; // Set req.user with decoded token payload (id, role)
+    next();
+  });
+};
+
+// Middleware for Admin Authorization
+const authorizeAdmin = (req, res, next) => {
+  if (req.user && req.user.role === 'admin') {
+    next();
+  } else {
+    res.status(403).json({ message: 'Forbidden: Admin access required' });
+  }
+};
+
+
+// --- Multer setup for file uploads (Consolidated) ---
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadPath = path.join(__dirname, 'uploads'); // 'uploads' directory relative to server.js
+    cb(null, uploadPath);
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`);
+  },
+});
+const upload = multer({ storage });
+
+
+// --- ALL API Routes (Consolidated) ---
+
+// Enquiry Route
+app.post('/api/enquiries', async (req, res) => {
+  const { name, email, mobile, subject, message } = req.body;
+
+  if (!name || !mobile || !subject || !message) {
+    return res.status(400).json({ message: 'Name, mobile, subject, and message are required fields.' });
+  }
+
+  try {
+    const newEnquiry = new Enquiry({
+      name,
+      email,
+      mobile,
+      subject,
+      message
+    });
+
+    await newEnquiry.save();
+    console.log('Enquiry saved successfully:', newEnquiry);
+    res.status(201).json({ message: 'Enquiry submitted successfully!', enquiry: newEnquiry });
+  } catch (error) {
+    console.error('Error saving enquiry:', error.message || error);
+    res.status(500).json({ message: 'Failed to submit enquiry. Please try again.', details: error.message });
+  }
+});
+
+
+// Signup route
+// This is the corrected signup route in server.js
+app.post('/addr', async (req, res) => {
+  const { username, email, mobile, password, addr } = req.body;
+
   if (!username || !mobile || !password) {
     console.error('Validation error: Missing required fields');
     return res.status(400).json({ message: 'Username, mobile, and password are required' });
   }
 
   try {
-    console.log('Received data:', req.body); // Log incoming request data for debugging
+    console.log('Received data:', req.body);
 
-    // Check if a user with the same mobile number or username already exists
     const existingUser = await User.findOne({ $or: [{ mobile }, { username }] });
     if (existingUser) {
       console.error('User already exists with this mobile number or username:', mobile, username);
       return res.status(400).json({ message: 'User already exists with this mobile number or username' });
     }
 
-    // Check if this is the first user to sign up
     const userCount = await User.countDocuments();
-    const role = userCount === 0 ? 'admin' : 'user'; // First user gets 'admin' role
+    const role = userCount === 0 ? 'admin' : 'user';
 
-    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 10);
-    const newUser = new User({ username, email, mobile, password: hashedPassword, role });
+
+    // FIX: Include the 'addr' field here.
+    const newUser = new User({ username, email, mobile, password: hashedPassword, role, addr });
 
     await newUser.save();
 
@@ -125,7 +251,7 @@ app.post('/api/login', async (req, res) => {
   }
 
   try {
-    const user = await User.findOne({ mobile });  // Assuming mobile is used as the unique identifier
+    const user = await User.findOne({ mobile });
     if (!user) {
       return res.status(401).json({ message: 'Invalid mobile number or password' });
     }
@@ -137,14 +263,86 @@ app.post('/api/login', async (req, res) => {
 
     const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
 
-    // Send the token and role in the response
     res.status(200).json({
       message: 'Login successful',
-      token,  // Return the token here
-      role: user.role,  // Send the user role along with the token
+      token,
+      role: user.role,
     });
   } catch (error) {
     console.error('Login error:', error.message || error);
+    res.status(500).json({ message: 'Internal server error', details: error.message });
+  }
+});
+
+app.post('/api/forgot-password', async (req, res) => {
+  const { mobile } = req.body;
+
+  if (!mobile) {
+    return res.status(400).json({ message: 'Mobile number is required' });
+  }
+
+  try {
+    const user = await User.findOne({ mobile });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Generate 6-digit OTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
+
+    const otpExpiry = new Date(Date.now() + 4 * 60 * 1000); // 4 minutes from now
+
+    // Save OTP in DB
+    const otpEntry = new OTP({
+      userId: user._id,
+      otp: otpCode,
+      expiresAt: otpExpiry
+    });
+
+    await otpEntry.save();
+
+    // Fix: Call the imported sendOTP function
+    const otpSent = await sendOTP(mobile, otpCode);
+
+    if (otpSent) {
+      res.status(200).json({ message: 'OTP sent successfully' });
+    } else {
+      res.status(500).json({ message: 'Error sending OTP. Please try again.' });
+    }
+
+  } catch (error) {
+    console.error('Forgot password error:', error);
+    res.status(500).json({ message: 'Internal server error', details: error.message });
+  }
+});
+
+
+app.post('/api/verify-otp', async (req, res) => {
+  const { mobile, otp } = req.body;
+
+  if (!mobile || !otp) {
+    return res.status(400).json({ message: 'Mobile and OTP are required' });
+  }
+
+  try {
+    const user = await User.findOne({ mobile });
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const otpEntry = await OTP.findOne({ userId: user._id, otp, verified: false });
+
+    if (!otpEntry) {
+      return res.status(400).json({ message: 'Invalid OTP' });
+    }
+
+    if (otpEntry.expiresAt < new Date()) {
+      return res.status(400).json({ message: 'OTP expired' });
+    }
+
+    // Mark OTP as verified
+    otpEntry.verified = true;
+    await otpEntry.save();
+
+    res.status(200).json({ message: 'OTP verified successfully', userId: user._id });
+  } catch (error) {
+    console.error('OTP verification error:', error);
     res.status(500).json({ message: 'Internal server error', details: error.message });
   }
 });
@@ -153,36 +351,59 @@ app.post('/api/login', async (req, res) => {
 app.post('/api/logout', (req, res) => {
   req.session.destroy((err) => {
     if (err) {
-      console.error('Error during logout:', err); // Log the error for debugging
+      console.error('Error during logout:', err);
       return res.status(500).json({ message: 'Could not log out' });
     }
-    res.clearCookie('connect.sid'); // Clear the session cookie
-    console.log('User logged out successfully'); // Log a success message without referencing user
+    res.clearCookie('connect.sid');
+    console.log('User logged out successfully');
     res.status(200).json({ message: 'Logout successful' });
   });
 });
 
-app.post('/api/create-order', async (req, res) => {
-  debugger
-  const { orderAmount, title, length, width } = req.body;
 
-  // Check if required fields are missing
-  if (!orderAmount || !title || !length || !width) {
+app.post('/api/reset-password', async (req, res) => {
+  const { userId, newPassword } = req.body;
+
+  if (!userId || !newPassword) {
+    return res.status(400).json({ message: 'User ID and new password are required' });
+  }
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Check if OTP is verified
+    const otpEntry = await OTP.findOne({ userId, verified: true }).sort({ createdAt: -1 });
+    if (!otpEntry) {
+      return res.status(400).json({ message: 'OTP not verified' });
+    }
+
+    user.password = await bcrypt.hash(newPassword, 10);
+    await user.save();
+
+    // Optional: Delete all OTPs for this user
+    await OTP.deleteMany({ userId });
+
+    res.status(200).json({ message: 'Password reset successfully' });
+  } catch (error) {
+    console.error('Reset password error:', error);
+    res.status(500).json({ message: 'Internal server error', details: error.message });
+  }
+});
+
+// Route to create an order
+app.post('/api/create-order', authenticateToken, async (req, res) => {
+  const { title, length, width, orderAmount } = req.body;
+
+  if (!title || !length || !width || !orderAmount) {
     return res.status(400).json({ message: 'All fields are required' });
   }
 
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({ message: 'Unauthorized: Missing token' });
-  }
-
-  const token = authHeader.split(' ')[1];
   try {
-    debugger
-    const user = jwt.verify(token, process.env.JWT_SECRET);
+    const userId = req.user.id; // User ID from authenticated token
 
-    const newOrder = new Order({
-      userId: user.id,
+    const newOrder = new Order({ // Use the directly defined Order model
+      userId,
       orderAmount,
       title,
       length,
@@ -191,7 +412,12 @@ app.post('/api/create-order', async (req, res) => {
     });
 
     await newOrder.save();
-    res.status(201).json({ message: 'Order created successfully', order: newOrder });
+
+    res.status(201).json({
+      message: 'Order created successfully',
+      order: newOrder
+    });
+
   } catch (error) {
     console.error('Error placing order:', error);
     res.status(500).json({ message: 'Error placing order. Please try again.' });
@@ -199,63 +425,39 @@ app.post('/api/create-order', async (req, res) => {
 });
 
 
-app.get('/api/orders', async (req, res) => {
-  const token = req.headers.authorization?.split(' ')[1];
-  if (!token) {
-    return res.status(401).json({ message: 'Unauthorized: Missing token' });
-  }
-
+// Get all orders (for admin or user's own orders)
+// MODIFIED: Added .populate('userId', 'username')
+app.get('/api/orders', authenticateToken, async (req, res) => {
   try {
-    // Verify the token and extract user information
-    const user = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // Check if the user is an admin
+    const user = req.user; // User from authenticated token
+
     if (user.role === 'admin') {
-      // Admin sees all orders
-      const orders = await Order.find();
+      // For admin, populate username for all orders
+      const orders = await Order.find().populate('userId', 'username');
       return res.status(200).json({ orders });
     } else {
-      // Regular user sees only their orders
-      const orders = await Order.find({ userId: user.id });
+      // For regular user, fetch their orders and populate username
+      const orders = await Order.find({ userId: user.id }).populate('userId', 'username');
       return res.status(200).json({ orders });
     }
   } catch (error) {
     console.error('Error fetching orders:', error);
-    res.status(401).json({ message: 'Unauthorized: Invalid token' });
+    res.status(500).json({ message: 'Error fetching orders' });
   }
 });
 
-// Add the route to update order status
-// Route to handle updating order statuses
-app.post('/api/orders/update-status', async (req, res) => {
-  const { statusUpdates } = req.body; // Array of { orderId, status }
-  const authHeader = req.headers.authorization;
-  
-  if (!authHeader) {
-    return res.status(401).json({ message: 'Unauthorized: Missing token' });
-  }
+// Update order status (for admin dashboard)
+app.post('/api/orders/update-status', authenticateToken, authorizeAdmin, async (req, res) => {
+  const { statusUpdates } = req.body;
 
-  const token = authHeader.split(' ')[1];
   try {
-    // Verify the token and extract user information
-    console.log('Token:', token);
-    const user = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('User:', user);
-      
     const updatedOrders = [];
-    
+
     for (const { orderId, status } of statusUpdates) {
       const order = await Order.findById(orderId);
       if (!order) {
-        continue; // Skip if the order does not exist
+        continue;
       }
-
-      // Check if the user is allowed to update the order (admin or order owner)
-      if (user.role !== 'admin' && order.userId.toString() !== user.id.toString()) {
-        continue; // Skip if the user is not authorized
-      }
-
-      // Update the order status
       order.status = status;
       await order.save();
       updatedOrders.push(order);
@@ -264,30 +466,16 @@ app.post('/api/orders/update-status', async (req, res) => {
     res.status(200).json({ message: 'Order statuses updated successfully', updatedOrders });
   } catch (error) {
     console.error('Error updating order statuses:', error);
-    res.status(401).json({ message: 'Unauthorized: Invalid token' });
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-
-
-
-app.get('/api/my-orders', async (req, res) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({ message: 'Unauthorized: Missing token' });
-  }
-
-  const token = authHeader.split(' ')[1];
+// Get logged-in user's orders (for MyOrders page)
+// MODIFIED: Added .populate('userId', 'username')
+app.get('/api/my-orders', authenticateToken, async (req, res) => {
   try {
-    // Verify the token to get the user's ID
-    const user = jwt.verify(token, process.env.JWT_SECRET);
-    if (!user) {
-      return res.status(401).json({ message: 'Unauthorized: Invalid token' });
-    }
-
-    // Fetch orders that belong to the authenticated user
-    const orders = await Order.find({ userId: user.id });
-
+    const user = req.user; // User from authenticated token
+    const orders = await Order.find({ userId: user.id }).populate('userId', 'username'); // Populate username
     res.status(200).json({ orders });
   } catch (error) {
     console.error('Error fetching user orders:', error);
@@ -295,55 +483,92 @@ app.get('/api/my-orders', async (req, res) => {
   }
 });
 
-// Cancel an order
-app.put('/api/orders/:orderId/cancel', async (req, res) => {
+// Cancel order route
+app.put('/api/orders/:orderId/cancel', authenticateToken, async (req, res) => {
   const { orderId } = req.params;
-  const authHeader = req.headers.authorization;
 
-  if (!authHeader) {
-    return res.status(401).json({ message: 'Unauthorized: Missing token' });
-  }
-
-  const token = authHeader.split(' ')[1];
   try {
-    const user = jwt.verify(token, process.env.JWT_SECRET);
-
-    // Find the order
+    const user = req.user; // User from authenticated token
     const order = await Order.findById(orderId);
+
     if (!order) {
       return res.status(404).json({ message: 'Order not found' });
     }
 
-    // Check if the user is allowed to cancel the order
-    if (user.role !== 'admin' && order.userId.toString() !== user.id) {
-      return res.status(403).json({ message: 'Forbidden: Cannot cancel this order' });
+    // Allow user to cancel their own pending order, or admin to cancel any pending order
+    if (order.status !== 'pending') {
+      return res.status(400).json({ message: `Order status is '${order.status}', cannot be cancelled.` });
     }
 
-    // Update the order status to 'cancelled'
+    if (user.role !== 'admin' && order.userId.toString() !== user.id) {
+      return res.status(403).json({ message: 'Forbidden: You are not authorized to cancel this order' });
+    }
+
     order.status = 'cancelled';
     await order.save();
 
     res.status(200).json({ message: 'Order cancelled successfully', order });
   } catch (error) {
     console.error('Error cancelling order:', error);
-    res.status(401).json({ message: 'Unauthorized: Invalid token' });
+    res.status(500).json({ message: 'Internal server error during order cancellation.' });
+  }
+});
+
+// ROUTE for customer review (Accept/Reject)
+app.put('/api/orders/:orderId/review', authenticateToken, async (req, res) => {
+  const { orderId } = req.params;
+  const { action, feedback } = req.body;
+
+  try {
+    const user = req.user; // User from authenticated token
+    const order = await Order.findById(orderId);
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+
+    // Ensure only the owner or an admin can review the order
+    if (order.userId.toString() !== user.id && user.role !== 'admin') {
+      return res.status(403).json({ message: 'Forbidden: You are not authorized to review this order.' });
+    }
+
+    // Only allow review for 'delivered' orders
+    if (order.status !== 'delivered') {
+      return res.status(400).json({ message: `Order status is '${order.status}', cannot be reviewed.` });
+    }
+
+    // Validate feedback based on action
+    if (action === 'reject' && (!feedback || feedback.trim().length === 0)) {
+      return res.status(400).json({ message: 'Feedback is mandatory when rejecting an order.' });
+    }
+
+    // Update status and feedback
+    if (action === 'accept') {
+      order.status = 'accepted'; // Corrected from 'accept' to 'accepted'
+    } else if (action === 'reject') {
+      order.status = 'rejected';
+    } else {
+      return res.status(400).json({ message: 'Invalid action specified. Must be "accept" or "reject".' });
+    }
+
+    order.feedback = feedback;
+
+    await order.save();
+    res.status(200).json({ message: `Order ${action}ed successfully!`, order });
+
+  } catch (error) {
+    console.error('Error reviewing order:', error);
+    res.status(500).json({ message: 'Internal server error during order review.' });
   }
 });
 
 
-app.get('/api/profile', async (req, res) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({ message: 'Unauthorized: Missing token' });
-  }
-
-  const token = authHeader.split(' ')[1];
+// Profile routes
+app.get('/api/profile', authenticateToken, async (req, res) => {
   try {
-    // Verify the token
-    const user = jwt.verify(token, process.env.JWT_SECRET);
+    const user = req.user; // User from authenticated token
 
-    // Fetch user details from the database
-    const userData = await User.findById(user.id).select('-password'); // Exclude password
+    const userData = await User.findById(user.id).select('-password');
     if (!userData) {
       return res.status(404).json({ message: 'User not found' });
     }
@@ -351,19 +576,13 @@ app.get('/api/profile', async (req, res) => {
     res.status(200).json(userData);
   } catch (error) {
     console.error('Error fetching profile:', error);
-    res.status(401).json({ message: 'Unauthorized: Invalid token' });
+    res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-app.put('/api/profile', async (req, res) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader) {
-    return res.status(401).json({ message: 'Unauthorized: Missing token' });
-  }
-
-  const token = authHeader.split(' ')[1];
+app.put('/api/profile', authenticateToken, async (req, res) => {
   try {
-    const user = jwt.verify(token, process.env.JWT_SECRET);
+    const user = req.user; // User from authenticated token
 
     const updatedData = {
       username: req.body.username,
@@ -372,14 +591,13 @@ app.put('/api/profile', async (req, res) => {
       addr: req.body.addr,
     };
 
-    // Only update password if provided
     if (req.body.password) {
       updatedData.password = await bcrypt.hash(req.body.password, 10);
     }
 
     const updatedUser = await User.findByIdAndUpdate(user.id, updatedData, {
       new: true,
-    }).select('-password'); // Exclude password in the response
+    }).select('-password');
 
     res.status(200).json(updatedUser);
   } catch (error) {
@@ -388,16 +606,103 @@ app.put('/api/profile', async (req, res) => {
   }
 });
 
-app.use(bodyParser.json());
 
-app.use('/api/services', serviceRoutes);
+// --- Service Routes (NEWLY ADDED AND CONSOLIDATED) ---
+
+// Create a new service (Admin only)
+app.post('/api/services', authenticateToken, authorizeAdmin, upload.single('image'), async (req, res) => {
+  try {
+    const { title, pricePerSquareFoot } = req.body;
+    // Check if the image path is available from Multer
+    const imagePath = req.file ? `/uploads/${req.file.filename}` : '';
+
+    if (!title || !pricePerSquareFoot) {
+      // If no file, and these are missing, return error
+      return res.status(400).json({ message: 'Title and pricePerSquareFoot are required for a service.' });
+    }
+
+    const newService = new Service({
+      title,
+      imagePath, // Use the generated image path
+      pricePerSquareFoot,
+    });
+    await newService.save();
+    res.status(201).json({ message: 'Service created successfully!', service: newService });
+  } catch (error) {
+    console.error('Error creating service:', error);
+    res.status(500).json({ message: 'Failed to create service. Please try again.' });
+  }
+});
+
+// Get all services (Publicly accessible)
+app.get('/api/services', async (req, res) => {
+  try {
+    const services = await Service.find();
+    res.status(200).json({ services });
+  } catch (error) {
+    console.error('Error fetching services:', error);
+    res.status(500).json({ message: 'Failed to fetch services.' });
+  }
+});
+
+// Get a single service by ID
+app.get('/api/services/:id', async (req, res) => {
+  try {
+    const service = await Service.findById(req.params.id);
+    if (!service) {
+      return res.status(404).json({ message: 'Service not found.' });
+    }
+    res.status(200).json({ service });
+  } catch (error) {
+    console.error('Error fetching service by ID:', error);
+    res.status(500).json({ message: 'Failed to fetch service.' });
+  }
+});
+
+// Update a service by ID (Admin only)
+app.put('/api/services/:id', authenticateToken, authorizeAdmin, upload.single('image'), async (req, res) => {
+  try {
+    const { title, pricePerSquareFoot } = req.body;
+    // Determine imagePath: if new file uploaded, use its path; otherwise, use existing path from body
+    const imagePath = req.file ? `/uploads/${req.file.filename}` : req.body.imagePath;
+
+    const updatedService = await Service.findByIdAndUpdate(
+      req.params.id,
+      { title, pricePerSquareFoot, imagePath }, // Update all fields, including imagePath
+      { new: true, runValidators: true } // Return the updated document and run schema validators
+    );
+
+    if (!updatedService) {
+      return res.status(404).json({ message: 'Service not found.' });
+    }
+    res.status(200).json({ message: 'Service updated successfully!', service: updatedService });
+  } catch (error) {
+    console.error('Error updating service:', error);
+    res.status(500).json({ message: 'Failed to update service. Please try again.' });
+  }
+});
+
+// Delete a service by ID (Admin only)
+app.delete('/api/services/:id', authenticateToken, authorizeAdmin, async (req, res) => {
+  try {
+    const deletedService = await Service.findByIdAndDelete(req.params.id);
+
+    if (!deletedService) {
+      return res.status(404).json({ message: 'Service not found.' });
+    }
+    res.status(200).json({ message: 'Service deleted successfully!', service: deletedService });
+  } catch (error) {
+    console.error('Error deleting service:', error);
+    res.status(500).json({ message: 'Failed to delete service. Please try again.' });
+  }
+});
+
+
+// Serve static files from the 'uploads' directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });
 
 mongoose.connection.on('error', console.error.bind(console, 'MongoDB connection error:'));
-
-

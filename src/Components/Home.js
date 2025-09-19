@@ -7,6 +7,7 @@ import t from './img/t.png';
 import f from './img/f.png';
 import fi from './img/fi.png';
 import s from './img/s.png';
+import Service from './Service';
 
 
 const Home = () => {
@@ -102,79 +103,26 @@ const Home = () => {
       </div>
 
       <div className="container-xxl py-5" id="facilities">
-        <div className="container">
+        {/* Admin-specific links */}
+       {/* <div className="container">*/}
           <div className="section-title text-center">
-            <h1 className="display-5 mb-5">Our Facilities</h1>
-          </div>
-
-
-          <div className="row g-4">
-
-            <div className="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.1s">
-              <div className="service-item">
-                <div className="overflow-hidden">
-                  <img className="img-fluid" src={myImage} alt="Gate" />
-                </div>
-                <div className="p-4 text-center border border-5 border-light border-top-0">
-                  <h4 className="mb-3">Gate</h4>
-                </div>
-              </div>
-            </div>
-            <div className="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.3s">
-              <div className="service-item">
-                <div className="overflow-hidden">
-                  <img className="img-fluid" src={t} alt="Window" />
-                </div>
-                <div className="p-4 text-center border border-5 border-light border-top-0">
-                  <h4 className="mb-3">Window</h4>
-                </div>
-              </div>
-            </div>
-            <div className="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.1s">
-              <div className="service-item">
-                <div className="overflow-hidden">
-                  <img className="img-fluid" src={Second} alt="Gate" />
-                </div>
-                <div className="p-4 text-center border border-5 border-light border-top-0">
-                  <h4 className="mb-3">Gate</h4>
-                </div>
-              </div>
-            </div>
-
-            <div className="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.5s">
-              <div className="service-item">
-                <div className="overflow-hidden">
-                  <img className="img-fluid" src={f} alt="Reling" />
-                </div>
-                <div className="p-4 text-center border border-5 border-light border-top-0">
-                  <h4 className="mb-3">Reeling</h4>
-                </div>
-              </div>
-            </div>
-            <div className="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.1s">
-              <div className="service-item">
-                <div className="overflow-hidden">
-                  <img className="img-fluid" src={fi} alt="trolley" />
-                </div>
-                <div className="p-4 text-center border border-5 border-light border-top-0">
-                  <h4 className="mb-3">Mini trolley</h4>
-                </div>
-              </div>
-            </div>
-            <div className="col-md-6 col-lg-4 wow fadeInUp" data-wow-delay="0.3s">
-              <div className="service-item">
-                <div className="overflow-hidden">
-                  <img className="img-fluid" src={s} alt="door" />
-                </div>
-                <div className="p-4 text-center border border-5 border-light border-top-0">
-                  <h4 className="mb-3">Safety Door</h4>
-                </div>
-              </div>
-            </div>
+            
+          <h1
+  className="text-center mb-4"
+  style={{
+    fontFamily: 'Source Sans Pro, sans-serif',
+    fontWeight: 600,
+    fontStyle: 'italic'
+  }}
+>
+  Our Facilities
+</h1>
 
 
           </div>
-        </div>
+
+          <Service/>
+       {/*  </div>*/}
       </div>
     </div>
   );
