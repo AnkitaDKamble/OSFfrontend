@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from "react";
-import { Card, Button, Modal, Form, Col, Row, Spinner, Alert } from "react-bootstrap"; // Added Spinner, Alert
+import { Card, Button, Modal, Form, Col, Row, Spinner, Alert } from "react-bootstrap";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 const Service = () => {
   const [services, setServices] = useState([]);
-  const [loading, setLoading] = useState(true); // Added loading state
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [orderDetails, setOrderDetails] = useState({
@@ -16,52 +16,69 @@ const Service = () => {
   });
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
+  const [paymentProcessing, setPaymentProcessing] = useState(false);
   const navigate = useNavigate();
+
+  // Load Razorpay script
+  useEffect(() => {
+    const loadRazorpayScript = () => {
+      return new Promise((resolve) => {
+        if (window.Razorpay) {
+          resolve(true);
+          return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+        script.onload = () => {
+          resolve(true);
+        };
+        script.onerror = () => {
+          resolve(false);
+        };
+        document.body.appendChild(script);
+      });
+    };
+
+    loadRazorpayScript();
+  }, []);
 
   // Fetch services from the backend
   useEffect(() => {
     const fetchServices = async () => {
-      setLoading(true); // Start loading
-      setError(""); // Clear previous errors
+      setLoading(true);
+      setError("");
       try {
         const response = await axios.get("http://localhost:5000/api/services");
 
-        // --- CRUCIAL FIX: Access response.data.services ---
         if (response.data && Array.isArray(response.data.services)) {
           setServices(response.data.services);
         } else {
-          // Handle cases where the data structure is not as expected
           console.error("Unexpected data structure for services:", response.data);
           setError("Failed to load services: Unexpected data format from server.");
-          setServices([]); // Ensure services is an empty array to prevent map error
+          setServices([]);
         }
       } catch (err) {
         console.error("Error fetching services:", err);
-        // More descriptive error message for network/API failures
         if (err.response) {
-          // Server responded with a status other than 2xx
           setError(err.response.data.message || `Failed to load services: ${err.response.statusText}`);
         } else if (err.request) {
-          // Request was made but no response received
           setError("Failed to load services: No response from server. Check if backend is running.");
         } else {
-          // Something else happened in setting up the request
           setError("Failed to load services: An unknown error occurred.");
         }
-        setServices([]); // Ensure services is an empty array
+        setServices([]);
       } finally {
-        setLoading(false); // Stop loading
+        setLoading(false);
       }
     };
 
     fetchServices();
-  }, []); // Empty dependency array means this runs once on mount
+  }, []);
 
   // Handle form input change
   const handleInputChange = (e) => {
     const { name, value } = e.target;
-
-    // Only update orderDetails if the input is valid (numeric for length/width)
     const newValue = (name === "length" || name === "width") ? parseFloat(value) : value;
 
     setOrderDetails((prevDetails) => {
@@ -70,7 +87,6 @@ const Service = () => {
         [name]: newValue,
       };
 
-      // Recalculate amount if length or width changed and are valid numbers
       if ((name === "length" || name === "width") && !isNaN(updatedDetails.length) && !isNaN(updatedDetails.width)) {
         const selectedService = services.find(
           (service) => service.title === updatedDetails.title
@@ -78,19 +94,18 @@ const Service = () => {
 
         if (selectedService) {
           const { pricePerSquareFoot } = selectedService;
-          const calculatedAmount =
-            updatedDetails.length * updatedDetails.width * pricePerSquareFoot;
-          updatedDetails.amount = calculatedAmount || 0; // Ensure it's 0 if calculation results in NaN/null
+          const calculatedAmount = updatedDetails.length * updatedDetails.width * pricePerSquareFoot;
+          updatedDetails.amount = calculatedAmount || 0;
         }
       }
       return updatedDetails;
     });
   };
 
-  // Handle order submission
+  // Handle order submission with Razorpay payment
   const handleOrderSubmit = async () => {
-    setError(""); // Clear previous errors
-    setSuccessMessage(""); // Clear previous success messages
+    setError("");
+    setSuccessMessage("");
     const token = localStorage.getItem("token");
 
     const { title, length, width, amount } = orderDetails;
@@ -107,13 +122,83 @@ const Service = () => {
     }
 
     try {
-      const response = await axios.post(
-        "http://localhost:5000/api/create-order", // Confirmed this is the correct endpoint from server.js
+      setPaymentProcessing(true);
+
+      // Create Razorpay order
+      const orderResponse = await axios.post(
+        "http://localhost:5000/api/create-razorpay-order",
+        { amount: orderDetails.amount },
         {
-          title,
-          length,
-          width,
-          orderAmount: amount, // Backend expects 'orderAmount'
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      if (orderResponse.data.success) {
+        const options = {
+          key: process.env.REACT_APP_RAZORPAY_KEY_ID, // Add to your .env file
+          amount: orderResponse.data.order.amount,
+          currency: orderResponse.data.order.currency,
+          name: "Omkar Steel Fabricators",
+          description: `Order for ${orderDetails.title}`,
+          image: "/logo.png",
+          order_id: orderResponse.data.order.id,
+          handler: async function (response) {
+            await verifyPayment(response);
+          },
+          prefill: {
+            name: "Customer",
+            email: "customer@example.com",
+            contact: "9999999999"
+          },
+          notes: {
+            address: "Customer Address"
+          },
+          theme: {
+            color: "#3399cc"
+          },
+          modal: {
+            ondismiss: function() {
+              setPaymentProcessing(false);
+              setError("Payment was cancelled");
+            }
+          }
+        };
+
+        const razorpay = new window.Razorpay(options);
+        razorpay.on('payment.failed', function (response) {
+          setPaymentProcessing(false);
+          setError(`Payment failed: ${response.error.description}`);
+        });
+        razorpay.open();
+      } else {
+        setError("Failed to create payment order");
+        setPaymentProcessing(false);
+      }
+    } catch (error) {
+      console.error("Payment initialization error:", error);
+      if (error.response) {
+        setError(error.response.data.message || "Error initializing payment. Please try again.");
+      } else {
+        setError("Error initializing payment: An unknown error occurred.");
+      }
+      setPaymentProcessing(false);
+    }
+  };
+
+  // Verify payment after successful transaction
+  const verifyPayment = async (paymentResponse) => {
+    try {
+      const token = localStorage.getItem("token");
+      
+      const verifyResponse = await axios.post(
+        "http://localhost:5000/api/verify-payment",
+        {
+          razorpay_order_id: paymentResponse.razorpay_order_id,
+          razorpay_payment_id: paymentResponse.razorpay_payment_id,
+          razorpay_signature: paymentResponse.razorpay_signature,
+          orderDetails: orderDetails
         },
         {
           headers: {
@@ -122,21 +207,19 @@ const Service = () => {
         }
       );
 
-      if (response.status === 201) {
-        setSuccessMessage("Order placed successfully!");
+      if (verifyResponse.data.success) {
+        setSuccessMessage("Payment successful! Order confirmed.");
         setShowModal(false);
-        setOrderDetails({ title: "", length: "", width: "", amount: 0 }); // Reset form
+        setOrderDetails({ title: "", length: "", width: "", amount: 0 });
         setError("");
+      } else {
+        setError("Payment verification failed");
       }
     } catch (error) {
-      console.error("Order submission error:", error);
-      if (error.response) {
-        setError(error.response.data.message || "Error placing order. Please try again.");
-      } else if (error.request) {
-        setError("Error placing order: No response from server. Please check backend.");
-      } else {
-        setError("Error placing order: An unknown error occurred.");
-      }
+      console.error("Payment verification error:", error);
+      setError("Error verifying payment. Please contact support.");
+    } finally {
+      setPaymentProcessing(false);
     }
   };
 
@@ -144,7 +227,7 @@ const Service = () => {
   const handleCloseModal = () => {
     setShowModal(false);
     setError("");
-    setOrderDetails({ title: "", length: "", width: "", amount: 0 }); // Reset form on close
+    setOrderDetails({ title: "", length: "", width: "", amount: 0 });
   };
 
   // Show modal and check login status
@@ -156,7 +239,6 @@ const Service = () => {
       return;
     }
 
-    // Find the selected service to initialize orderDetails with its title
     const selectedService = services.find(
       (service) => service.title === serviceTitle
     );
@@ -164,7 +246,7 @@ const Service = () => {
     if (selectedService) {
       setOrderDetails({
         title: serviceTitle,
-        length: "", // Keep these empty for user input
+        length: "",
         width: "",
         amount: 0,
       });
@@ -176,7 +258,7 @@ const Service = () => {
 
   const handleCloseLoginPrompt = () => {
     setShowLoginPrompt(false);
-    navigate("/login"); // Redirect to login page
+    navigate("/login");
   };
 
   return (
@@ -203,12 +285,12 @@ const Service = () => {
                     variant="top"
                     src={
                       service.imagePath
-                        ? `http://localhost:5000${service.imagePath}` // Ensure this path matches your static serve setup
-                        : "https://placehold.co/400x200/555/fff?text=No+Image" // Fallback placeholder
+                        ? `http://localhost:5000${service.imagePath}`
+                        : "https://placehold.co/400x200/555/fff?text=No+Image"
                     }
                     alt={service.title}
                     style={{ height: "200px", objectFit: "cover" }}
-                    onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/400x200/555/fff?text=No+Image'; }} // Fallback on error
+                    onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/400x200/555/fff?text=No+Image'; }}
                   />
                   <Card.Body>
                     <Card.Title>{service.title}</Card.Title>
@@ -232,7 +314,6 @@ const Service = () => {
           )}
         </Row>
       )}
-
 
       {/* Order Modal */}
       <Modal show={showModal} onHide={handleCloseModal}>
@@ -258,6 +339,8 @@ const Service = () => {
                 value={orderDetails.length}
                 onChange={handleInputChange}
                 placeholder="Enter length"
+                min="0"
+                step="0.1"
               />
             </Form.Group>
             <Form.Group controlId="formWidth" className="mb-3">
@@ -268,6 +351,8 @@ const Service = () => {
                 value={orderDetails.width}
                 onChange={handleInputChange}
                 placeholder="Enter width"
+                min="0"
+                step="0.1"
               />
             </Form.Group>
             <Form.Group controlId="formAmount" className="mb-3">
@@ -275,7 +360,7 @@ const Service = () => {
               <Form.Control
                 type="number"
                 name="amount"
-                value={orderDetails.amount}
+                value={orderDetails.amount.toFixed(2)}
                 readOnly
               />
             </Form.Group>
@@ -283,11 +368,22 @@ const Service = () => {
           {error && <p className="text-danger">{error}</p>}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={handleCloseModal}>
+          <Button variant="secondary" onClick={handleCloseModal} disabled={paymentProcessing}>
             Close
           </Button>
-          <Button variant="primary" onClick={handleOrderSubmit}>
-            Submit Order
+          <Button 
+            variant="primary" 
+            onClick={handleOrderSubmit}
+            disabled={paymentProcessing || orderDetails.amount <= 0}
+          >
+            {paymentProcessing ? (
+              <>
+                <Spinner animation="border" size="sm" className="me-2" />
+                Processing...
+              </>
+            ) : (
+              `Pay ₹${orderDetails.amount.toFixed(2)}`
+            )}
           </Button>
         </Modal.Footer>
       </Modal>

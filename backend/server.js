@@ -11,6 +11,7 @@ import multer from 'multer'; // For file uploads
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import path from 'path';
+import Razorpay from 'razorpay';
 
 // Fix: Import the named 'sendOTP' function.
 // This is the only place it should be "declared" in this file.
@@ -42,6 +43,16 @@ mongoose.connect('mongodb://127.0.0.1:27017/OSF', {
 })
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('Connection error:', err));
+
+
+
+
+  // Initialize Razorpay after mongoose connection
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID,
+  key_secret: process.env.RAZORPAY_KEY_SECRET,
+});
+
 
 // Setup session store
 const store = new MongoDBStore({
@@ -80,7 +91,10 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
-// Order schema (NOW INCLUDES feedback field)
+// Update Order Schema to include Razorpay fields
+// Add these fields to your existing orderSchema:
+
+
 const orderSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   orderAmount: { type: Number, required: true },
@@ -88,9 +102,14 @@ const orderSchema = new mongoose.Schema({
   length: { type: Number, required: true },
   width: { type: Number, required: true },
   status: { type: String, default: 'pending' },
-  feedback: { type: String }, // Feedback field for delivered orders
+  feedback: { type: String },
+  razorpayOrderId: { type: String }, // ADD THIS
+  razorpayPaymentId: { type: String }, // ADD THIS
+  razorpaySignature: { type: String }, // ADD THIS
   createdAt: { type: Date, default: Date.now }
 });
+
+// ==================== RAZORPAY ROUTES ====================
 const Order = mongoose.model('Order', orderSchema);
 
 
@@ -204,6 +223,102 @@ app.post('/api/enquiries', async (req, res) => {
     res.status(500).json({ message: 'Failed to submit enquiry. Please try again.', details: error.message });
   }
 });
+
+
+
+
+// Create Razorpay order
+app.post('/api/create-razorpay-order', authenticateToken, async (req, res) => {
+  try {
+    const { amount, currency = "INR" } = req.body;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({ message: 'Valid amount is required' });
+    }
+
+    // Convert amount to paise
+    const amountInPaise = Math.round(amount * 100);
+
+    const options = {
+      amount: amountInPaise,
+      currency: currency,
+      receipt: `receipt_${Date.now()}`,
+      payment_capture: 1
+    };
+
+    const order = await razorpay.orders.create(options);
+
+    res.status(200).json({
+      success: true,
+      order: {
+        id: order.id,
+        amount: order.amount,
+        currency: order.currency
+      },
+      message: 'Razorpay order created successfully'
+    });
+
+  } catch (error) {
+    console.error('Razorpay order creation error:', error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Error creating payment order',
+      error: error.message 
+    });
+  }
+});
+
+// Verify Razorpay payment and create order
+app.post('/api/verify-payment', authenticateToken, async (req, res) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderDetails } = req.body;
+
+    // Verify payment signature
+    const crypto = await import('crypto');
+    const generated_signature = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+                                     .update(razorpay_order_id + "|" + razorpay_payment_id)
+                                     .digest('hex');
+
+    if (generated_signature === razorpay_signature) {
+      // Payment verified successfully - create order in database
+      const { title, length, width, orderAmount } = orderDetails;
+      const userId = req.user.id;
+
+      const newOrder = new Order({
+        userId,
+        orderAmount,
+        title,
+        length,
+        width,
+        status: 'confirmed',
+        razorpayOrderId: razorpay_order_id,
+        razorpayPaymentId: razorpay_payment_id,
+        razorpaySignature: razorpay_signature
+      });
+
+      await newOrder.save();
+
+      res.status(200).json({
+        success: true,
+        message: 'Payment verified and order confirmed successfully',
+        order: newOrder
+      });
+    } else {
+      res.status(400).json({
+        success: false,
+        message: 'Payment verification failed'
+      });
+    }
+  } catch (error) {
+    console.error('Payment verification error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error verifying payment',
+      error: error.message
+    });
+  }
+});
+
 
 
 // Signup route
