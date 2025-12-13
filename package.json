@@ -17,9 +17,9 @@
     "mongoose": "^8.8.0",
     "multer": "^1.4.5-lts.1",
     "razorpay": "^2.9.5",
-    "react": "^18.3.1",
+    "react": "^19.2.0",
     "react-bootstrap": "^2.10.5",
-    "react-dom": "^18.3.1",
+    "react-dom": "^19.2.0",
     "react-router-dom": "^6.27.0",
     "react-scripts": "^5.0.1",
     "web-vitals": "^2.1.4"
@@ -47,5 +47,22 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  }
+  },
+  "description": "<<<<<<< HEAD\r # Getting Started with Create React App",
+  "main": "index.js",
+  "devDependencies": {
+    "jest": "^27.5.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AnkitaDKamble/OSF.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/AnkitaDKamble/OSF/issues"
+  },
+  "homepage": "https://github.com/AnkitaDKamble/OSF#readme"
 }
