@@ -63,21 +63,7 @@ const Footer = () => {
               >
                 Contact Us
               </Link><br />
-              
-              <Link
-                className={`nav-link ${location.pathname === "/signup" ? "active" : ""}`}
-                to="/signup"
-                onClick={handleScrollToTop}
-              >
-                Sign Up
-              </Link><br />
-              <Link
-                className={`nav-link ${location.pathname === "/login" ? "active" : ""}`}
-                to="/login"
-                onClick={handleScrollToTop}
-              >
-                Log in
-              </Link><br />
+                                 
             </div>
           </div>
         </div>

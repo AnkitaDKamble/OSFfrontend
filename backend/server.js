@@ -11,10 +11,8 @@ import multer from 'multer'; // For file uploads
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 import path from 'path';
-import Razorpay from 'razorpay';
 
-// Fix: Import the named 'sendOTP' function.
-// This is the only place it should be "declared" in this file.
+// Import the named 'sendOTP' function
 import { sendOTP } from './sendOTP.js';
 
 // Get the current directory name using import.meta.url
@@ -43,16 +41,6 @@ mongoose.connect('mongodb://127.0.0.1:27017/OSF', {
 })
   .then(() => console.log('MongoDB connected'))
   .catch(err => console.error('Connection error:', err));
-
-
-
-
-  // Initialize Razorpay after mongoose connection
-const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID,
-  key_secret: process.env.RAZORPAY_KEY_SECRET,
-});
-
 
 // Setup session store
 const store = new MongoDBStore({
@@ -91,10 +79,7 @@ const userSchema = new mongoose.Schema({
 });
 const User = mongoose.model('User', userSchema);
 
-// Update Order Schema to include Razorpay fields
-// Add these fields to your existing orderSchema:
-
-
+// Order Schema (without Razorpay fields)
 const orderSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   orderAmount: { type: Number, required: true },
@@ -103,15 +88,10 @@ const orderSchema = new mongoose.Schema({
   width: { type: Number, required: true },
   status: { type: String, default: 'pending' },
   feedback: { type: String },
-  razorpayOrderId: { type: String }, // ADD THIS
-  razorpayPaymentId: { type: String }, // ADD THIS
-  razorpaySignature: { type: String }, // ADD THIS
   createdAt: { type: Date, default: Date.now }
 });
 
-// ==================== RAZORPAY ROUTES ====================
 const Order = mongoose.model('Order', orderSchema);
-
 
 // OTP Schema
 const otpSchema = new mongoose.Schema({
@@ -122,7 +102,6 @@ const otpSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 const OTP = mongoose.model('OTP', otpSchema);
-
 
 // Enquiry Schema
 const enquirySchema = new mongoose.Schema({
@@ -153,7 +132,6 @@ const serviceSchema = new mongoose.Schema({
 
 const Service = mongoose.model('Service', serviceSchema);
 
-
 // --- Middleware for JWT Verification ---
 const authenticateToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
@@ -182,7 +160,6 @@ const authorizeAdmin = (req, res, next) => {
   }
 };
 
-
 // --- Multer setup for file uploads (Consolidated) ---
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -194,7 +171,6 @@ const storage = multer.diskStorage({
   },
 });
 const upload = multer({ storage });
-
 
 // --- ALL API Routes (Consolidated) ---
 
@@ -224,105 +200,7 @@ app.post('/api/enquiries', async (req, res) => {
   }
 });
 
-
-
-
-// Create Razorpay order
-app.post('/api/create-razorpay-order', authenticateToken, async (req, res) => {
-  try {
-    const { amount, currency = "INR" } = req.body;
-
-    if (!amount || amount <= 0) {
-      return res.status(400).json({ message: 'Valid amount is required' });
-    }
-
-    // Convert amount to paise
-    const amountInPaise = Math.round(amount * 100);
-
-    const options = {
-      amount: amountInPaise,
-      currency: currency,
-      receipt: `receipt_${Date.now()}`,
-      payment_capture: 1
-    };
-
-    const order = await razorpay.orders.create(options);
-
-    res.status(200).json({
-      success: true,
-      order: {
-        id: order.id,
-        amount: order.amount,
-        currency: order.currency
-      },
-      message: 'Razorpay order created successfully'
-    });
-
-  } catch (error) {
-    console.error('Razorpay order creation error:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Error creating payment order',
-      error: error.message 
-    });
-  }
-});
-
-// Verify Razorpay payment and create order
-app.post('/api/verify-payment', authenticateToken, async (req, res) => {
-  try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderDetails } = req.body;
-
-    // Verify payment signature
-    const crypto = await import('crypto');
-    const generated_signature = crypto.createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
-                                     .update(razorpay_order_id + "|" + razorpay_payment_id)
-                                     .digest('hex');
-
-    if (generated_signature === razorpay_signature) {
-      // Payment verified successfully - create order in database
-      const { title, length, width, orderAmount } = orderDetails;
-      const userId = req.user.id;
-
-      const newOrder = new Order({
-        userId,
-        orderAmount,
-        title,
-        length,
-        width,
-        status: 'confirmed',
-        razorpayOrderId: razorpay_order_id,
-        razorpayPaymentId: razorpay_payment_id,
-        razorpaySignature: razorpay_signature
-      });
-
-      await newOrder.save();
-
-      res.status(200).json({
-        success: true,
-        message: 'Payment verified and order confirmed successfully',
-        order: newOrder
-      });
-    } else {
-      res.status(400).json({
-        success: false,
-        message: 'Payment verification failed'
-      });
-    }
-  } catch (error) {
-    console.error('Payment verification error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error verifying payment',
-      error: error.message
-    });
-  }
-});
-
-
-
 // Signup route
-// This is the corrected signup route in server.js
 app.post('/addr', async (req, res) => {
   const { username, email, mobile, password, addr } = req.body;
 
@@ -345,7 +223,6 @@ app.post('/addr', async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // FIX: Include the 'addr' field here.
     const newUser = new User({ username, email, mobile, password: hashedPassword, role, addr });
 
     await newUser.save();
@@ -358,6 +235,7 @@ app.post('/addr', async (req, res) => {
   }
 });
 
+// Login route
 app.post('/api/login', async (req, res) => {
   const { mobile, password } = req.body;
 
@@ -389,6 +267,7 @@ app.post('/api/login', async (req, res) => {
   }
 });
 
+// Forgot password route
 app.post('/api/forgot-password', async (req, res) => {
   const { mobile } = req.body;
 
@@ -414,7 +293,6 @@ app.post('/api/forgot-password', async (req, res) => {
 
     await otpEntry.save();
 
-    // Fix: Call the imported sendOTP function
     const otpSent = await sendOTP(mobile, otpCode);
 
     if (otpSent) {
@@ -429,7 +307,7 @@ app.post('/api/forgot-password', async (req, res) => {
   }
 });
 
-
+// Verify OTP route
 app.post('/api/verify-otp', async (req, res) => {
   const { mobile, otp } = req.body;
 
@@ -462,20 +340,7 @@ app.post('/api/verify-otp', async (req, res) => {
   }
 });
 
-// Logout route
-app.post('/api/logout', (req, res) => {
-  req.session.destroy((err) => {
-    if (err) {
-      console.error('Error during logout:', err);
-      return res.status(500).json({ message: 'Could not log out' });
-    }
-    res.clearCookie('connect.sid');
-    console.log('User logged out successfully');
-    res.status(200).json({ message: 'Logout successful' });
-  });
-});
-
-
+// Reset password route
 app.post('/api/reset-password', async (req, res) => {
   const { userId, newPassword } = req.body;
 
@@ -506,7 +371,20 @@ app.post('/api/reset-password', async (req, res) => {
   }
 });
 
-// Route to create an order
+// Logout route
+app.post('/api/logout', (req, res) => {
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('Error during logout:', err);
+      return res.status(500).json({ message: 'Could not log out' });
+    }
+    res.clearCookie('connect.sid');
+    console.log('User logged out successfully');
+    res.status(200).json({ message: 'Logout successful' });
+  });
+});
+
+// Route to create an order (Basic - no payment processing)
 app.post('/api/create-order', authenticateToken, async (req, res) => {
   const { title, length, width, orderAmount } = req.body;
 
@@ -517,7 +395,7 @@ app.post('/api/create-order', authenticateToken, async (req, res) => {
   try {
     const userId = req.user.id; // User ID from authenticated token
 
-    const newOrder = new Order({ // Use the directly defined Order model
+    const newOrder = new Order({
       userId,
       orderAmount,
       title,
@@ -539,9 +417,7 @@ app.post('/api/create-order', authenticateToken, async (req, res) => {
   }
 });
 
-
 // Get all orders (for admin or user's own orders)
-// MODIFIED: Added .populate('userId', 'username')
 app.get('/api/orders', authenticateToken, async (req, res) => {
   try {
     const user = req.user; // User from authenticated token
@@ -586,11 +462,10 @@ app.post('/api/orders/update-status', authenticateToken, authorizeAdmin, async (
 });
 
 // Get logged-in user's orders (for MyOrders page)
-// MODIFIED: Added .populate('userId', 'username')
 app.get('/api/my-orders', authenticateToken, async (req, res) => {
   try {
     const user = req.user; // User from authenticated token
-    const orders = await Order.find({ userId: user.id }).populate('userId', 'username'); // Populate username
+    const orders = await Order.find({ userId: user.id }).populate('userId', 'username');
     res.status(200).json({ orders });
   } catch (error) {
     console.error('Error fetching user orders:', error);
@@ -659,7 +534,7 @@ app.put('/api/orders/:orderId/review', authenticateToken, async (req, res) => {
 
     // Update status and feedback
     if (action === 'accept') {
-      order.status = 'accepted'; // Corrected from 'accept' to 'accepted'
+      order.status = 'accepted';
     } else if (action === 'reject') {
       order.status = 'rejected';
     } else {
@@ -676,7 +551,6 @@ app.put('/api/orders/:orderId/review', authenticateToken, async (req, res) => {
     res.status(500).json({ message: 'Internal server error during order review.' });
   }
 });
-
 
 // Profile routes
 app.get('/api/profile', authenticateToken, async (req, res) => {
@@ -721,24 +595,21 @@ app.put('/api/profile', authenticateToken, async (req, res) => {
   }
 });
 
-
-// --- Service Routes (NEWLY ADDED AND CONSOLIDATED) ---
+// --- Service Routes ---
 
 // Create a new service (Admin only)
 app.post('/api/services', authenticateToken, authorizeAdmin, upload.single('image'), async (req, res) => {
   try {
     const { title, pricePerSquareFoot } = req.body;
-    // Check if the image path is available from Multer
     const imagePath = req.file ? `/uploads/${req.file.filename}` : '';
 
     if (!title || !pricePerSquareFoot) {
-      // If no file, and these are missing, return error
       return res.status(400).json({ message: 'Title and pricePerSquareFoot are required for a service.' });
     }
 
     const newService = new Service({
       title,
-      imagePath, // Use the generated image path
+      imagePath,
       pricePerSquareFoot,
     });
     await newService.save();
@@ -778,13 +649,12 @@ app.get('/api/services/:id', async (req, res) => {
 app.put('/api/services/:id', authenticateToken, authorizeAdmin, upload.single('image'), async (req, res) => {
   try {
     const { title, pricePerSquareFoot } = req.body;
-    // Determine imagePath: if new file uploaded, use its path; otherwise, use existing path from body
     const imagePath = req.file ? `/uploads/${req.file.filename}` : req.body.imagePath;
 
     const updatedService = await Service.findByIdAndUpdate(
       req.params.id,
-      { title, pricePerSquareFoot, imagePath }, // Update all fields, including imagePath
-      { new: true, runValidators: true } // Return the updated document and run schema validators
+      { title, pricePerSquareFoot, imagePath },
+      { new: true, runValidators: true }
     );
 
     if (!updatedService) {
@@ -812,10 +682,10 @@ app.delete('/api/services/:id', authenticateToken, authorizeAdmin, async (req, r
   }
 });
 
-
 // Serve static files from the 'uploads' directory
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Start server
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
 });

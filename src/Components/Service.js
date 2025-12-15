@@ -16,32 +16,8 @@ const Service = () => {
   });
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
-  const [paymentProcessing, setPaymentProcessing] = useState(false);
+  const [orderProcessing, setOrderProcessing] = useState(false);
   const navigate = useNavigate();
-
-  // Load Razorpay script
-  useEffect(() => {
-    const loadRazorpayScript = () => {
-      return new Promise((resolve) => {
-        if (window.Razorpay) {
-          resolve(true);
-          return;
-        }
-
-        const script = document.createElement('script');
-        script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-        script.onload = () => {
-          resolve(true);
-        };
-        script.onerror = () => {
-          resolve(false);
-        };
-        document.body.appendChild(script);
-      });
-    };
-
-    loadRazorpayScript();
-  }, []);
 
   // Fetch services from the backend
   useEffect(() => {
@@ -102,7 +78,7 @@ const Service = () => {
     });
   };
 
-  // Handle order submission with Razorpay payment
+  // Handle order submission
   const handleOrderSubmit = async () => {
     setError("");
     setSuccessMessage("");
@@ -122,83 +98,16 @@ const Service = () => {
     }
 
     try {
-      setPaymentProcessing(true);
+      setOrderProcessing(true);
 
-      // Create Razorpay order
+      // Send order directly to backend
       const orderResponse = await axios.post(
-        "http://localhost:5000/api/create-razorpay-order",
-        { amount: orderDetails.amount },
+        "http://localhost:5000/api/create-order",
         {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (orderResponse.data.success) {
-        const options = {
-          key: process.env.REACT_APP_RAZORPAY_KEY_ID, // Add to your .env file
-          amount: orderResponse.data.order.amount,
-          currency: orderResponse.data.order.currency,
-          name: "Omkar Steel Fabricators",
-          description: `Order for ${orderDetails.title}`,
-          image: "/logo.png",
-          order_id: orderResponse.data.order.id,
-          handler: async function (response) {
-            await verifyPayment(response);
-          },
-          prefill: {
-            name: "Customer",
-            email: "customer@example.com",
-            contact: "9999999999"
-          },
-          notes: {
-            address: "Customer Address"
-          },
-          theme: {
-            color: "#3399cc"
-          },
-          modal: {
-            ondismiss: function() {
-              setPaymentProcessing(false);
-              setError("Payment was cancelled");
-            }
-          }
-        };
-
-        const razorpay = new window.Razorpay(options);
-        razorpay.on('payment.failed', function (response) {
-          setPaymentProcessing(false);
-          setError(`Payment failed: ${response.error.description}`);
-        });
-        razorpay.open();
-      } else {
-        setError("Failed to create payment order");
-        setPaymentProcessing(false);
-      }
-    } catch (error) {
-      console.error("Payment initialization error:", error);
-      if (error.response) {
-        setError(error.response.data.message || "Error initializing payment. Please try again.");
-      } else {
-        setError("Error initializing payment: An unknown error occurred.");
-      }
-      setPaymentProcessing(false);
-    }
-  };
-
-  // Verify payment after successful transaction
-  const verifyPayment = async (paymentResponse) => {
-    try {
-      const token = localStorage.getItem("token");
-      
-      const verifyResponse = await axios.post(
-        "http://localhost:5000/api/verify-payment",
-        {
-          razorpay_order_id: paymentResponse.razorpay_order_id,
-          razorpay_payment_id: paymentResponse.razorpay_payment_id,
-          razorpay_signature: paymentResponse.razorpay_signature,
-          orderDetails: orderDetails
+          title: orderDetails.title,
+          length: orderDetails.length,
+          width: orderDetails.width,
+          orderAmount: orderDetails.amount
         },
         {
           headers: {
@@ -207,19 +116,21 @@ const Service = () => {
         }
       );
 
-      if (verifyResponse.data.success) {
-        setSuccessMessage("Payment successful! Order confirmed.");
+      if (orderResponse.data) {
+        setSuccessMessage("Order placed successfully!");
         setShowModal(false);
         setOrderDetails({ title: "", length: "", width: "", amount: 0 });
         setError("");
-      } else {
-        setError("Payment verification failed");
       }
     } catch (error) {
-      console.error("Payment verification error:", error);
-      setError("Error verifying payment. Please contact support.");
+      console.error("Order submission error:", error);
+      if (error.response) {
+        setError(error.response.data.message || "Error placing order. Please try again.");
+      } else {
+        setError("Error placing order: An unknown error occurred.");
+      }
     } finally {
-      setPaymentProcessing(false);
+      setOrderProcessing(false);
     }
   };
 
@@ -363,26 +274,29 @@ const Service = () => {
                 value={orderDetails.amount.toFixed(2)}
                 readOnly
               />
+              <Form.Text className="text-muted">
+                Amount = Length × Width × Price per sq. ft.
+              </Form.Text>
             </Form.Group>
           </Form>
           {error && <p className="text-danger">{error}</p>}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={handleCloseModal} disabled={paymentProcessing}>
-            Close
+          <Button variant="secondary" onClick={handleCloseModal} disabled={orderProcessing}>
+            Cancel
           </Button>
           <Button 
             variant="primary" 
             onClick={handleOrderSubmit}
-            disabled={paymentProcessing || orderDetails.amount <= 0}
+            disabled={orderProcessing || orderDetails.amount <= 0}
           >
-            {paymentProcessing ? (
+            {orderProcessing ? (
               <>
                 <Spinner animation="border" size="sm" className="me-2" />
-                Processing...
+                Placing Order...
               </>
             ) : (
-              `Pay ₹${orderDetails.amount.toFixed(2)}`
+              `Place Order ₹${orderDetails.amount.toFixed(2)}`
             )}
           </Button>
         </Modal.Footer>
@@ -397,8 +311,11 @@ const Service = () => {
           <p>You need to log in to place an order. Please log in first.</p>
         </Modal.Body>
         <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowLoginPrompt(false)}>
+            Cancel
+          </Button>
           <Button variant="primary" onClick={handleCloseLoginPrompt}>
-            OK
+            Go to Login
           </Button>
         </Modal.Footer>
       </Modal>
