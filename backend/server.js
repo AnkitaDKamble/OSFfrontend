@@ -4,35 +4,28 @@ import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
-import multer from "multer";
-import path from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
-import { sendOTP } from "./sendOTP.js";
 
 dotenv.config();
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
 const app = express();
-const PORT = process.env.PORT || 5000;
 
 // ---------- Middleware ----------
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
+  origin: "*", // safe for now
   credentials: true,
 }));
 app.use(express.json());
 
 // ---------- MongoDB ----------
 mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log("MongoDB Atlas connected"))
-  .catch(err => console.error("Mongo error:", err));
+  .then(() => console.log("✅ MongoDB connected"))
+  .catch(err => console.error("❌ Mongo error:", err));
 
-// ---------- Schemas ----------
+// ---------- Schema ----------
 const userSchema = new mongoose.Schema({
-  username: { type: String, unique: true },
+  username: String,
   email: String,
   mobile: { type: String, unique: true },
   password: String,
@@ -42,7 +35,7 @@ const userSchema = new mongoose.Schema({
 
 const User = mongoose.model("User", userSchema);
 
-// ---------- JWT Middleware ----------
+// ---------- JWT ----------
 const authenticateToken = (req, res, next) => {
   const token = req.headers.authorization?.split(" ")[1];
   if (!token) return res.status(401).json({ message: "No token" });
@@ -54,10 +47,11 @@ const authenticateToken = (req, res, next) => {
   });
 };
 
-// ---------- Signup ----------
+// ---------- Routes ----------
 app.post("/api/signup", async (req, res) => {
   try {
     const { username, mobile, password, email, addr } = req.body;
+
     if (!username || !mobile || !password)
       return res.status(400).json({ message: "Missing fields" });
 
@@ -79,13 +73,12 @@ app.post("/api/signup", async (req, res) => {
 
     res.status(201).json({ message: "Signup successful" });
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: "Server error" });
   }
 });
 
-// ---------- Login ----------
 app.post("/api/login", async (req, res) => {
-  const { mobile, password } = req.body;
+  const { mobile, password };
 
   const user = await User.findOne({ mobile });
   if (!user) return res.status(401).json({ message: "Invalid login" });
@@ -102,13 +95,22 @@ app.post("/api/login", async (req, res) => {
   res.json({ token, role: user.role });
 });
 
-// ---------- Profile ----------
 app.get("/api/profile", authenticateToken, async (req, res) => {
   const user = await User.findById(req.user.id).select("-password");
   res.json(user);
 });
 
-// ---------- Start ----------
-app.listen(PORT, () =>
-  console.log(`Server running on port ${PORT}`)
-);
+app.get("/", (req, res) => {
+  res.send("API running 🚀");
+});
+
+// ---------- START SERVER (LOCAL ONLY) ----------
+if (process.env.NODE_ENV !== "production") {
+  const PORT = process.env.PORT || 5000;
+  app.listen(PORT, () =>
+    console.log(`🚀 Server running locally on port ${PORT}`)
+  );
+}
+
+// ✅ REQUIRED for Vercel
+export default app;
