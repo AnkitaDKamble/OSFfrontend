@@ -18,7 +18,7 @@ const SignUp = () => {
 
   const validate = () => {
     const errors = {};
-    
+
     if (!name) {
       errors.name = 'Name is required';
     }
@@ -52,7 +52,8 @@ const SignUp = () => {
     if (validate()) {
       setIsLoading(true);
       try {
-        const response = await axios.post('http://localhost:5000/addr', {
+        const response = await axios.post(
+          `${process.env.REACT_APP_API_URL}/api/signup`, {
           username: name,
           email,
           mobile,
@@ -191,11 +192,11 @@ const SignUp = () => {
             {errors.general && <small className="text-danger">{errors.general}</small>}
             <div className="text-center mt-3">
               <span>
-                Already registered? 
-                <Link 
+                Already registered?
+                <Link
                   className={`nav-link ${location.pathname === "/login" ? "active" : ""} text-primary`}
-                  to="/login" 
-                  style={{ textDecoration: 'underline' }} 
+                  to="/login"
+                  style={{ textDecoration: 'underline' }}
                 >
                   Login
                 </Link>
