@@ -4,62 +4,108 @@ import dotenv from "dotenv";
 import bcrypt from "bcrypt";
 import mongoose from "mongoose";
 import jwt from "jsonwebtoken";
-import { fileURLToPath } from "url";
-import { dirname } from "path";
 
 dotenv.config();
 
 const app = express();
 
-// ---------- Middleware ----------
-app.use(cors({
-  origin: "*", // safe for now
-  credentials: true,
-}));
+/* ---------- Middleware ---------- */
+app.use(
+  cors({
+    origin: "*", // change to frontend URL later
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
 app.use(express.json());
 
-// ---------- MongoDB ----------
-mongoose.connect(process.env.MONGO_URI)
+/* ---------- MongoDB ---------- */
+mongoose
+  .connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB connected"))
-  .catch(err => console.error("❌ Mongo error:", err));
+  .catch((err) => {
+    console.error("❌ Mongo error:", err.message);
+  });
 
-// ---------- Schema ----------
-const userSchema = new mongoose.Schema({
-  username: String,
-  email: String,
-  mobile: { type: String, unique: true },
-  password: String,
-  role: { type: String, default: "user" },
-  addr: String,
-}, { timestamps: true });
+/* ---------- Schema ---------- */
+const userSchema = new mongoose.Schema(
+  {
+    username: {
+      type: String,
+      trim: true,
+    },
+    email: {
+      type: String,
+      lowercase: true,
+      trim: true,
+    },
+    mobile: {
+      type: String,
+      required: true,
+      unique: true,
+      match: [/^\d{10}$/, "Invalid mobile number"],
+    },
+    password: {
+      type: String,
+      required: true,
+      minlength: 6,
+    },
+    role: {
+      type: String,
+      default: "user",
+    },
+    addr: {
+      type: String,
+      trim: true,
+    },
+  },
+  { timestamps: true }
+);
+
+// Prevent duplicate mobile race condition
+userSchema.index({ mobile: 1 }, { unique: true });
 
 const User = mongoose.model("User", userSchema);
 
-// ---------- JWT ----------
+/* ---------- JWT Middleware ---------- */
 const authenticateToken = (req, res, next) => {
-  const token = req.headers.authorization?.split(" ")[1];
-  if (!token) return res.status(401).json({ message: "No token" });
+  const authHeader = req.headers.authorization;
+  const token = authHeader?.split(" ")[1];
 
-  jwt.verify(token, process.env.JWT_SECRET, (err, user) => {
-    if (err) return res.status(403).json({ message: "Invalid token" });
-    req.user = user;
+  if (!token) {
+    return res.status(401).json({ message: "Token missing" });
+  }
+
+  jwt.verify(token, process.env.JWT_SECRET, (err, decoded) => {
+    if (err) {
+      return res.status(403).json({ message: "Invalid or expired token" });
+    }
+    req.user = decoded;
     next();
   });
 };
 
-// ---------- Routes ----------
+/* ---------- Routes ---------- */
+
+// SIGNUP
 app.post("/api/signup", async (req, res) => {
   try {
     const { username, mobile, password, email, addr } = req.body;
 
-    if (!username || !mobile || !password)
-      return res.status(400).json({ message: "Missing fields" });
+    if (!mobile || !password) {
+      return res.status(400).json({
+        message: "Mobile and password are required",
+      });
+    }
 
     const exists = await User.findOne({ mobile });
-    if (exists)
-      return res.status(400).json({ message: "User already exists" });
+    if (exists) {
+      return res.status(400).json({
+        message: "User already exists",
+      });
+    }
 
-    const hashed = await bcrypt.hash(password, 10);
+    const hashedPassword = await bcrypt.hash(password, 10);
     const count = await User.countDocuments();
 
     await User.create({
@@ -67,50 +113,88 @@ app.post("/api/signup", async (req, res) => {
       mobile,
       email,
       addr,
-      password: hashed,
+      password: hashedPassword,
       role: count === 0 ? "admin" : "user",
     });
 
-    res.status(201).json({ message: "Signup successful" });
+    return res.status(201).json({
+      message: "Signup successful",
+    });
   } catch (err) {
-    res.status(500).json({ message: "Server error" });
+    console.error("Signup error:", err.message);
+    return res.status(500).json({
+      message: "Server error",
+    });
   }
 });
 
+// LOGIN
 app.post("/api/login", async (req, res) => {
-  const { mobile, password };
+  try {
+    const { mobile, password } = req.body;
 
-  const user = await User.findOne({ mobile });
-  if (!user) return res.status(401).json({ message: "Invalid login" });
+    if (!mobile || !password) {
+      return res.status(400).json({
+        message: "Mobile and password are required",
+      });
+    }
 
-  const match = await bcrypt.compare(password, user.password);
-  if (!match) return res.status(401).json({ message: "Invalid login" });
+    const user = await User.findOne({ mobile });
+    if (!user) {
+      return res.status(401).json({
+        message: "Invalid credentials",
+      });
+    }
 
-  const token = jwt.sign(
-    { id: user._id, role: user.role },
-    process.env.JWT_SECRET,
-    { expiresIn: "1h" }
-  );
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(401).json({
+        message: "Invalid credentials",
+      });
+    }
 
-  res.json({ token, role: user.role });
+    const token = jwt.sign(
+      { id: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+
+    return res.json({
+      token,
+      role: user.role,
+    });
+  } catch (err) {
+    console.error("Login error:", err.message);
+    return res.status(500).json({
+      message: "Server error",
+    });
+  }
 });
 
+// PROFILE
 app.get("/api/profile", authenticateToken, async (req, res) => {
-  const user = await User.findById(req.user.id).select("-password");
-  res.json(user);
+  try {
+    const user = await User.findById(req.user.id).select("-password");
+    return res.json(user);
+  } catch (err) {
+    return res.status(500).json({
+      message: "Server error",
+    });
+  }
 });
 
+// ROOT
 app.get("/", (req, res) => {
   res.send("API running 🚀");
 });
 
-// ---------- START SERVER (LOCAL ONLY) ----------
+/* ---------- Local Server ---------- */
 if (process.env.NODE_ENV !== "production") {
   const PORT = process.env.PORT || 5000;
-  app.listen(PORT, () =>
-    console.log(`🚀 Server running locally on port ${PORT}`)
-  );
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+  });
 }
 
-// ✅ REQUIRED for Vercel
+/* ---------- Required for Vercel ---------- */
 export default app;

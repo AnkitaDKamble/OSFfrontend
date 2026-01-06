@@ -1,220 +1,258 @@
-import React, { useState } from 'react';
-import { Modal, Button } from 'react-bootstrap';
+import React, { useState } from "react";
+import { Modal, Button } from "react-bootstrap";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import axios from 'axios';
+import axios from "axios";
 
 const SignUp = () => {
-  let location = useLocation();
+  const location = useLocation();
   const navigate = useNavigate();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
-  const [mobile, setMobile] = useState('');
-  const [addr, setAddr] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [addr, setAddr] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
   const [errors, setErrors] = useState({});
   const [showSuccess, setShowSuccess] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
+  // ---------- Validation ----------
   const validate = () => {
-    const errors = {};
+    const errs = {};
 
-    if (!name) {
-      errors.name = 'Name is required';
-    }
+    if (!name.trim()) errs.name = "Name is required";
 
-    if (email && !/\S+@\S+\.\S+/.test(email)) {
-      errors.email = 'Email is invalid';
-    }
+    if (email && !/\S+@\S+\.\S+/.test(email))
+      errs.email = "Email is invalid";
 
-    if (!/^\d{10}$/.test(mobile)) {
-      errors.mobile = 'Mobile number should be exactly 10 digits';
-    }
+    if (!/^\d{10}$/.test(mobile))
+      errs.mobile = "Mobile number must be 10 digits";
 
-    if (!addr) {
-      errors.addr = 'Address is required';
-    }
+    if (!addr.trim()) errs.addr = "Address is required";
 
-    if (!password) {
-      errors.password = 'Password is required';
-    }
+    if (!password) errs.password = "Password is required";
 
-    if (confirmPassword !== password) {
-      errors.confirmPassword = 'Passwords do not match';
-    }
+    if (password !== confirmPassword)
+      errs.confirmPassword = "Passwords do not match";
 
-    setErrors(errors);
-    return Object.keys(errors).length === 0;
+    setErrors(errs);
+    return Object.keys(errs).length === 0;
   };
 
+  // ---------- Submit ----------
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validate()) {
-      setIsLoading(true);
-      try {
-        const response = await axios.post(
-          `${process.env.REACT_APP_API_URL}/api/signup`, {
-          username: name,
-          email,
-          mobile,
-          addr,
-          password,
-        });
+    if (!validate()) return;
 
-        console.log(response.data);
-        setShowSuccess(true);
-        setName('');
-        setEmail('');
-        setMobile('');
-        setAddr('');
-        setPassword('');
-        setConfirmPassword('');
-      } catch (error) {
-        console.error('Signup error details:', error);
-        if (error.response && error.response.status === 400) {
-          setErrors({ ...errors, email: 'User already exists' });
-        } else {
-          setErrors({ ...errors, general: 'An error occurred. Please try again.' });
-        }
-      } finally {
-        setIsLoading(false);
+    setIsLoading(true);
+    setErrors({});
+
+    try {
+      const API_URL = process.env.REACT_APP_API_URL;
+
+      if (!API_URL) {
+        throw new Error("API URL not configured");
       }
+
+      const response = await axios.post(`${API_URL}/api/signup`, {
+        username: name,
+        email,
+        mobile,
+        addr,
+        password,
+      });
+
+      console.log("Signup success:", response.data);
+
+      setShowSuccess(true);
+      setName("");
+      setEmail("");
+      setMobile("");
+      setAddr("");
+      setPassword("");
+      setConfirmPassword("");
+    } catch (error) {
+      console.error("Signup error:", error);
+
+      if (error.response) {
+        setErrors({
+          general: error.response.data.message || "Signup failed",
+        });
+      } else {
+        setErrors({
+          general: "Server not reachable. Check API URL.",
+        });
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleClose = () => {
     setShowSuccess(false);
-    setTimeout(() => {
-      navigate('/login'); // Redirect to login page after 2 seconds
-    }, 2000);
+    navigate("/login");
   };
 
+  // ---------- Input handlers ----------
   const handleMobileChange = (e) => {
-    const value = e.target.value.replace(/[^0-9]/g, '');
-    setMobile(value);
+    setMobile(e.target.value.replace(/[^0-9]/g, ""));
   };
 
   const handleNameChange = (e) => {
-    const value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
-    setName(value);
-  };
-
-  const handleAddrChange = (e) => {
-    const value = e.target.value; // No need for filtering here, as address can have spaces
-    setAddr(value);
+    setName(e.target.value.replace(/[^a-zA-Z\s]/g, ""));
   };
 
   return (
-    <div className="container d-flex justify-content-center align-items-center vh-100" style={{ backgroundColor: '#808080' }}>
-      <div className="card text-white bg-dark" style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto', borderRadius: '10px' }}>
+    <div
+      className="container d-flex justify-content-center align-items-center vh-100"
+      style={{ backgroundColor: "#808080" }}
+    >
+      <div
+        className="card text-white bg-dark"
+        style={{
+          width: "100%",
+          maxWidth: "500px",
+          maxHeight: "90vh",
+          overflowY: "auto",
+          borderRadius: "10px",
+        }}
+      >
         <div className="card-body">
           <h5 className="card-title text-center">Sign Up</h5>
+
           <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="name">Name</label>
+            {/* Name */}
+            <div className="form-group mb-2">
+              <label>Name</label>
               <input
                 type="text"
                 className="form-control bg-secondary text-white"
-                id="name"
                 value={name}
                 onChange={handleNameChange}
-                required
-                maxLength="40"
+                maxLength={40}
               />
-              {errors.name && <small className="text-danger">{errors.name}</small>}
+              {errors.name && (
+                <small className="text-danger">{errors.name}</small>
+              )}
             </div>
-            <div className="form-group">
-              <label htmlFor="email">Email (optional)</label>
+
+            {/* Email */}
+            <div className="form-group mb-2">
+              <label>Email (optional)</label>
               <input
                 type="email"
                 className="form-control bg-secondary text-white"
-                id="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                maxLength="30"
+                maxLength={30}
               />
-              {errors.email && <small className="text-danger">{errors.email}</small>}
+              {errors.email && (
+                <small className="text-danger">{errors.email}</small>
+              )}
             </div>
-            <div className="form-group">
-              <label htmlFor="mobile">Mobile Number</label>
+
+            {/* Mobile */}
+            <div className="form-group mb-2">
+              <label>Mobile</label>
               <input
                 type="tel"
                 className="form-control bg-secondary text-white"
-                id="mobile"
                 value={mobile}
                 onChange={handleMobileChange}
-                required
-                maxLength="10"
+                maxLength={10}
               />
-              {errors.mobile && <small className="text-danger">{errors.mobile}</small>}
+              {errors.mobile && (
+                <small className="text-danger">{errors.mobile}</small>
+              )}
             </div>
-            <div className="form-group">
-              <label htmlFor="address">Address</label>
+
+            {/* Address */}
+            <div className="form-group mb-2">
+              <label>Address</label>
               <textarea
                 className="form-control bg-secondary text-white"
-                id="address"
                 value={addr}
-                onChange={handleAddrChange}
-                required
-                maxLength="100"
+                onChange={(e) => setAddr(e.target.value)}
+                maxLength={100}
               />
-              {errors.addr && <small className="text-danger">{errors.addr}</small>}
+              {errors.addr && (
+                <small className="text-danger">{errors.addr}</small>
+              )}
             </div>
-            <div className="form-group">
-              <label htmlFor="password">Password</label>
+
+            {/* Password */}
+            <div className="form-group mb-2">
+              <label>Password</label>
               <input
                 type="password"
                 className="form-control bg-secondary text-white"
-                id="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                required
-                maxLength="20"
+                maxLength={20}
               />
-              {errors.password && <small className="text-danger">{errors.password}</small>}
+              {errors.password && (
+                <small className="text-danger">{errors.password}</small>
+              )}
             </div>
-            <div className="form-group">
-              <label htmlFor="confirmPassword">Confirm Password</label>
+
+            {/* Confirm Password */}
+            <div className="form-group mb-3">
+              <label>Confirm Password</label>
               <input
                 type="password"
                 className="form-control bg-secondary text-white"
-                id="confirmPassword"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                required
-                maxLength="20"
+                maxLength={20}
               />
-              {errors.confirmPassword && <small className="text-danger">{errors.confirmPassword}</small>}
+              {errors.confirmPassword && (
+                <small className="text-danger">
+                  {errors.confirmPassword}
+                </small>
+              )}
             </div>
-            <button type="submit" className="btn btn-primary btn-block my-3" disabled={isLoading}>
-              {isLoading ? 'Signing Up...' : 'Sign Up'}
+
+            <button
+              type="submit"
+              className="btn btn-primary w-100"
+              disabled={isLoading}
+            >
+              {isLoading ? "Signing Up..." : "Sign Up"}
             </button>
-            {errors.general && <small className="text-danger">{errors.general}</small>}
+
+            {errors.general && (
+              <small className="text-danger d-block mt-2">
+                {errors.general}
+              </small>
+            )}
+
             <div className="text-center mt-3">
-              <span>
-                Already registered?
-                <Link
-                  className={`nav-link ${location.pathname === "/login" ? "active" : ""} text-primary`}
-                  to="/login"
-                  style={{ textDecoration: 'underline' }}
-                >
-                  Login
-                </Link>
-              </span>
+              Already registered?{" "}
+              <Link
+                to="/login"
+                className={`text-primary ${
+                  location.pathname === "/login" ? "active" : ""
+                }`}
+                style={{ textDecoration: "underline" }}
+              >
+                Login
+              </Link>
             </div>
           </form>
         </div>
       </div>
 
-      {/* Modal for Successful Sign Up */}
-      <Modal show={showSuccess} onHide={handleClose}>
+      {/* Success Modal */}
+      <Modal show={showSuccess} onHide={handleClose} centered>
         <Modal.Header closeButton>
           <Modal.Title>Sign Up Successful</Modal.Title>
         </Modal.Header>
         <Modal.Body>You have signed up successfully!</Modal.Body>
         <Modal.Footer>
           <Button variant="primary" onClick={handleClose}>
-            Close
+            Go to Login
           </Button>
         </Modal.Footer>
       </Modal>
