@@ -3,6 +3,9 @@ import { Modal, Button } from "react-bootstrap";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 
+// ✅ API URL (build-time injected)
+const API_URL = process.env.REACT_APP_API_URL;
+
 const SignUp = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -46,16 +49,15 @@ const SignUp = () => {
     e.preventDefault();
     if (!validate()) return;
 
+    if (!API_URL) {
+      setErrors({ general: "API not configured. Please try later." });
+      return;
+    }
+
     setIsLoading(true);
     setErrors({});
 
     try {
-      const API_URL = process.env.REACT_APP_API_URL;
-
-      if (!API_URL) {
-        throw new Error("API URL not configured");
-      }
-
       const response = await axios.post(`${API_URL}/api/signup`, {
         username: name,
         email,
@@ -82,7 +84,7 @@ const SignUp = () => {
         });
       } else {
         setErrors({
-          general: "Server not reachable. Check API URL.",
+          general: "Server not reachable",
         });
       }
     } finally {
