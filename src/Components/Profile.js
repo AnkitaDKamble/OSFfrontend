@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button } from 'react-bootstrap';
 import axios from 'axios';
+import './Profile.css';
 
 const Profile = () => {
   const [name, setName] = useState('');
@@ -65,6 +66,7 @@ const Profile = () => {
           }
         );
         setShowSuccess(true);
+        setPassword('');
       } catch (error) {
         console.error('Error updating profile:', error.response?.data || error.message);
         setErrors({ general: 'An error occurred while updating the profile. Please try again.' });
@@ -74,93 +76,157 @@ const Profile = () => {
     }
   };
 
+  const handleMobileChange = (e) => {
+    const value = e.target.value.replace(/[^0-9]/g, '');
+    if (value.length <= 10) {
+      setMobile(value);
+    }
+  };
+
+  const handleNameChange = (e) => {
+    const value = e.target.value.replace(/[^a-zA-Z\s]/g, '');
+    setName(value);
+  };
+
   return (
-    <div
-      className="container d-flex justify-content-center align-items-center vh-100"
-      style={{ backgroundColor: '#808080' }}
-    >
-      <div
-        className="card text-white bg-dark"
-        style={{ width: '100%', maxWidth: '500px', maxHeight: '90vh', overflowY: 'auto', borderRadius: '10px' }}
-      >
-        <div className="card-body">
-          <h5 className="card-title text-center">Profile</h5>
-          <form onSubmit={handleSubmit}>
-            <div className="form-group">
-              <label htmlFor="name">Name</label>
-              <input
-                type="text"
-                className="form-control bg-secondary text-white"
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                maxLength="40"
-              />
-              {errors.name && <small className="text-danger">{errors.name}</small>}
-            </div>
-            <div className="form-group">
-              <label htmlFor="email">Email (optional)</label>
-              <input
-                type="email"
-                className="form-control bg-secondary text-white"
-                id="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                maxLength="30"
-              />
-              {errors.email && <small className="text-danger">{errors.email}</small>}
-            </div>
-            <div className="form-group">
-              <label htmlFor="mobile">Mobile Number</label>
-              <input
-                type="tel"
-                className="form-control bg-secondary text-white"
-                id="mobile"
-                value={mobile}
-                onChange={(e) => setMobile(e.target.value)}
-                maxLength="10"
-              />
-              {errors.mobile && <small className="text-danger">{errors.mobile}</small>}
-            </div>
-            <div className="form-group">
-              <label htmlFor="address">Address</label>
-              <textarea
-                className="form-control bg-secondary text-white"
-                id="address"
-                value={addr}
-                onChange={(e) => setAddr(e.target.value)}
-                maxLength="100"
-              />
-              {errors.addr && <small className="text-danger">{errors.addr}</small>}
-            </div>
-            <div className="form-group">
-              <label htmlFor="password">Password (optional)</label>
-              <input
-                type="password"
-                className="form-control bg-secondary text-white"
-                id="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                maxLength="20"
-              />
-            </div>
-            <button type="submit" className="btn btn-primary btn-block my-3" disabled={isLoading}>
-              {isLoading ? 'Updating...' : 'Update Profile'}
-            </button>
-            {errors.general && <small className="text-danger d-block text-center">{errors.general}</small>}
-          </form>
+    <div className="profile-container">
+      <div className="profile-card">
+        <div className="profile-header">
+          <i className="bi bi-person-circle profile-icon"></i>
+          <h2 className="profile-title">My Profile</h2>
+          <div className="title-underline"></div>
+          <p className="profile-subtitle">Manage your account information</p>
         </div>
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-group">
+            <label className="form-label">
+              <i className="bi bi-person-fill me-2"></i>
+              Full Name
+            </label>
+            <input
+              type="text"
+              className={`form-control profile-input ${errors.name ? 'is-invalid' : ''}`}
+              value={name}
+              onChange={handleNameChange}
+              placeholder="Enter your full name"
+              maxLength="40"
+            />
+            {errors.name && <div className="error-message">{errors.name}</div>}
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              <i className="bi bi-envelope-fill me-2"></i>
+              Email Address
+              <span className="optional-badge">Optional</span>
+            </label>
+            <input
+              type="email"
+              className={`form-control profile-input ${errors.email ? 'is-invalid' : ''}`}
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="Enter your email"
+              maxLength="30"
+            />
+            {errors.email && <div className="error-message">{errors.email}</div>}
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              <i className="bi bi-phone-fill me-2"></i>
+              Mobile Number
+            </label>
+            <input
+              type="tel"
+              className={`form-control profile-input ${errors.mobile ? 'is-invalid' : ''}`}
+              value={mobile}
+              onChange={handleMobileChange}
+              placeholder="Enter 10 digit mobile number"
+              maxLength="10"
+            />
+            {errors.mobile && <div className="error-message">{errors.mobile}</div>}
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              <i className="bi bi-geo-alt-fill me-2"></i>
+              Address
+            </label>
+            <textarea
+              className={`form-control profile-textarea ${errors.addr ? 'is-invalid' : ''}`}
+              value={addr}
+              onChange={(e) => setAddr(e.target.value)}
+              placeholder="Enter your address"
+              rows="3"
+              maxLength="100"
+            />
+            {errors.addr && <div className="error-message">{errors.addr}</div>}
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">
+              <i className="bi bi-lock-fill me-2"></i>
+              New Password
+              <span className="optional-badge">Optional</span>
+            </label>
+            <input
+              type="password"
+              className="form-control profile-input"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Enter new password (leave blank to keep current)"
+              maxLength="20"
+            />
+            <div className="field-hint">Leave blank to keep your current password</div>
+          </div>
+
+          {errors.general && (
+            <div className="alert-general">
+              <i className="bi bi-exclamation-triangle-fill me-2"></i>
+              {errors.general}
+            </div>
+          )}
+
+          <button
+            type="submit"
+            className="profile-btn"
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2"></span>
+                Updating...
+              </>
+            ) : (
+              <>
+                <i className="bi bi-save-fill me-2"></i>
+                Update Profile
+              </>
+            )}
+          </button>
+        </form>
       </div>
 
-      {/* Modal for Successful Update */}
-      <Modal show={showSuccess} onHide={() => setShowSuccess(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Profile Updated</Modal.Title>
+      {/* Success Modal */}
+      <Modal show={showSuccess} onHide={() => setShowSuccess(false)} centered className="success-modal">
+        <Modal.Header closeButton className="success-modal-header">
+          <Modal.Title>
+            <i className="bi bi-check-circle-fill me-2"></i>
+            Profile Updated!
+          </Modal.Title>
         </Modal.Header>
-        <Modal.Body>Your profile has been updated successfully!</Modal.Body>
-        <Modal.Footer>
-          <Button variant="primary" onClick={() => setShowSuccess(false)}>
-            Close
+        <Modal.Body className="success-modal-body">
+          <div className="success-icon">
+            <i className="bi bi-emoji-smile-fill"></i>
+          </div>
+          <p>Your profile has been updated successfully!</p>
+          <p className="text-muted small">Your changes have been saved.</p>
+        </Modal.Body>
+        <Modal.Footer className="success-modal-footer">
+          <Button className="success-btn" onClick={() => setShowSuccess(false)}>
+            <i className="bi bi-check2-circle me-2"></i>
+            Done
           </Button>
         </Modal.Footer>
       </Modal>

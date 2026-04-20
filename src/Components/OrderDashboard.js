@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Spinner, Alert, Button, Form, Table } from 'react-bootstrap'; // Import Table for table styling
+import { Spinner, Alert, Button, Form, Table } from 'react-bootstrap';
+import './OrderDashboard.css';
 
 function OrderDashboard() {
   const [orders, setOrders] = useState([]);
@@ -11,8 +12,8 @@ function OrderDashboard() {
   // Fetch orders
   const fetchOrders = async () => {
     setLoading(true);
-    setError(''); // Clear previous errors
-    setSuccessMessage(''); // Clear previous success messages
+    setError('');
+    setSuccessMessage('');
     try {
       const token = localStorage.getItem('token');
       if (!token) {
@@ -45,13 +46,11 @@ function OrderDashboard() {
       }
 
       if (Array.isArray(result.orders)) {
-        // --- CRUCIAL CHANGE: Filter to EXCLUDE ONLY orders 'accepted' by the customer ---
         const activeManagementOrders = result.orders.filter(
-          (order) => order.status !== 'accepted' // Only exclude customer-accepted orders
+          (order) => order.status !== 'accepted'
         );
         setOrders(activeManagementOrders);
 
-        // Initialize updatedStatuses for the filtered orders
         const initialStatuses = {};
         activeManagementOrders.forEach(order => {
           initialStatuses[order._id] = order.status;
@@ -90,7 +89,6 @@ function OrderDashboard() {
 
       const statusUpdates = Object.entries(updatedStatuses)
         .filter(([orderId, newStatus]) => {
-          // Only include orders where status has actually changed from their original
           const originalOrder = orders.find(order => order._id === orderId);
           return originalOrder && originalOrder.status !== newStatus;
         })
@@ -99,9 +97,10 @@ function OrderDashboard() {
           status: newStatus,
         }));
 
+      // ✅ REMOVED: No alert when no status updates
+      // Just return silently without showing error
       if (statusUpdates.length === 0) {
-        setError('No status updates to submit.');
-        return;
+        return; // Silently exit without any alert
       }
 
       const response = await fetch('http://localhost:5000/api/orders/update-status', {
@@ -124,8 +123,8 @@ function OrderDashboard() {
 
       if (response.ok) {
         setSuccessMessage('Order statuses updated successfully.');
-        setUpdatedStatuses({}); // Clear updated statuses after successful submission
-        fetchOrders(); // Re-fetch all orders to reflect status changes (which will re-filter them)
+        setUpdatedStatuses({});
+        fetchOrders();
       } else {
         setError(result.message || 'Failed to update order statuses');
       }
@@ -139,25 +138,56 @@ function OrderDashboard() {
     fetchOrders();
   }, []);
 
-  return (
-    <div className="container mt-5">
-      <h2 className="text-center mb-4">Manage Active Orders (Admin Dashboard)</h2> {/* Clarified title */}
+  // Helper function to get badge color based on status
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-warning text-dark';
+      case 'confirmed':
+        return 'bg-info text-dark';
+      case 'processing':
+        return 'bg-primary';
+      case 'shipped':
+        return 'bg-secondary';
+      case 'delivered':
+        return 'bg-success';
+      case 'cancelled':
+        return 'bg-danger';
+      case 'accepted':
+        return 'bg-dark';
+      case 'rejected':
+        return 'bg-danger';
+      default:
+        return 'bg-light text-dark';
+    }
+  };
 
-      {error && <Alert variant="danger">{error}</Alert>}
-      {successMessage && <Alert variant="success">{successMessage}</Alert>}
+  return (
+    <div className="dashboard-container">
+      <div className="dashboard-header">
+        <h2 className="dashboard-title">
+          <i className="bi bi-speedometer2 me-3"></i>
+          Manage Active Orders
+        </h2>
+        <div className="title-underline"></div>
+        <p className="dashboard-subtitle">Track and update order statuses</p>
+      </div>
+
+      {error && <Alert variant="danger" className="custom-alert">{error}</Alert>}
+      {successMessage && <Alert variant="success" className="custom-alert">{successMessage}</Alert>}
 
       {loading ? (
-        <div className="text-center">
-          <Spinner animation="border" role="status">
+        <div className="text-center loading-container">
+          <Spinner animation="border" variant="warning" role="status">
             <span className="visually-hidden">Loading orders...</span>
           </Spinner>
-          <p className="mt-2">Loading orders...</p>
+          <p className="mt-2 text-muted">Loading orders...</p>
         </div>
       ) : (
-        <div>
+        <div className="dashboard-content">
           {orders.length > 0 ? (
             <div className="table-responsive">
-              <Table striped bordered hover responsive className="table-dark rounded overflow-hidden">
+              <table className="dashboard-table">
                 <thead>
                   <tr>
                     <th>Order ID</th>
@@ -167,62 +197,57 @@ function OrderDashboard() {
                     <th>Length (ft)</th>
                     <th>Width (ft)</th>
                     <th>Current Status</th>
-                    <th>New Status</th>
+                    <th>Update Status</th>
                     <th>Customer Feedback</th>
                   </tr>
                 </thead>
                 <tbody>
                   {orders.map((order) => (
                     <tr key={order._id}>
-                      <td>{order._id}</td>
+                      <td className="order-id">{order._id.slice(-8)}</td>
                       <td>{order.userId ? order.userId.username : 'N/A'}</td>
                       <td>{order.title}</td>
-                      <td>₹{order.orderAmount}</td>
-                      <td>{order.length}</td>
-                      <td>{order.width}</td>
+                      <td className="amount">₹{order.orderAmount}</td>
+                      <td>{order.length} ft</td>
+                      <td>{order.width} ft</td>
                       <td>
-                        <span className={`badge ${
-                            order.status === 'pending' ? 'bg-info' :
-                            order.status === 'acceptedbyadmin' ? 'bg-primary' : // Admin accepted, differentiating from customer accepted
-                            order.status === 'manufacturing started' ? 'bg-warning text-dark' :
-                            order.status === 'completed' ? 'bg-secondary' :
-                            order.status === 'delivered' ? 'bg-success' : // Delivered (awaiting customer review)
-                            order.status === 'cancelled' ? 'bg-danger' :
-                            order.status === 'rejected' ? 'bg-danger' : // Rejected by customer
-                            'bg-light text-dark' // Default/fallback
-                        }`}>
+                        <span className={`status-badge ${getStatusBadgeClass(order.status)}`}>
                           {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                         </span>
                       </td>
                       <td>
-                        <Form.Select
-                          className="bg-secondary text-light rounded-md"
+                        <select
+                          className="status-select"
                           value={updatedStatuses[order._id] || order.status}
                           onChange={(e) => handleStatusChange(order._id, e.target.value)}
-                          aria-label={`Select status for order ${order._id}`}
                         >
                           <option value="pending">Pending</option>
-                          <option value="acceptedbyadmin">Accepted by Admin</option> {/* Renamed for clarity */}
-                          <option value="manufacturing started">Manufacturing Started</option>
-                          <option value="completed">Completed</option>
+                          <option value="confirmed">Confirmed</option>
+                          <option value="processing">Processing</option>
+                          <option value="shipped">Shipped</option>
                           <option value="delivered">Delivered</option>
                           <option value="cancelled">Cancelled</option>
-                          <option value="rejected">Rejected</option> {/* Included 'rejected' in dropdown as requested */}
-                        </Form.Select>
+                          <option value="rejected">Rejected</option>
+                        </select>
                       </td>
-                      <td>{order.feedback || '-'}</td>
+                      <td className="feedback">{order.feedback || '-'}</td>
                     </tr>
                   ))}
                 </tbody>
-              </Table>
-              <div className="d-flex justify-content-end mt-3">
-                <Button onClick={handleSubmit} className="btn btn-primary rounded-md">
-                  Submit All Updated Statuses
-                </Button>
+              </table>
+              <div className="submit-container">
+                <button onClick={handleSubmit} className="submit-btn">
+                  <i className="bi bi-check2-circle me-2"></i>
+                  Update Statuses
+                </button>
               </div>
             </div>
           ) : (
-            <p className="text-center text-muted">No active orders available for management. Customer Accepted orders are in Order History.</p>
+            <div className="empty-state">
+              <i className="bi bi-inbox display-1"></i>
+              <p>No active orders available for management.</p>
+              <p className="text-muted small">Customer accepted orders are moved to history</p>
+            </div>
           )}
         </div>
       )}

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Spinner, Alert, Table } from 'react-bootstrap';
+import { Spinner, Alert } from 'react-bootstrap';
+import './OrderHistoryDashboard.css';
 
-// Component name
 function OrderHistoryDashboard() {
   const [orderHistory, setOrderHistory] = useState([]);
   const [error, setError] = useState('');
@@ -43,7 +43,6 @@ function OrderHistoryDashboard() {
       }
 
       if (Array.isArray(result.orders)) {
-        // --- CRUCIAL CHANGE: Filter for orders that are 'accepted' by customer OR 'cancelled' ---
         const filteredOrders = result.orders.filter(
           (order) => order.status === 'accepted' || order.status === 'cancelled'
         );
@@ -55,69 +54,92 @@ function OrderHistoryDashboard() {
     } catch (err) {
       console.error('Network error fetching order history:', err);
       setError('An unexpected network error occurred while fetching order history. Please check your connection.');
-      setOrderHistory([]); // Ensure it's an empty array on network error too
+      setOrderHistory([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Call the data fetching function inside useEffect
   useEffect(() => {
     fetchOrders();
   }, []);
 
-  return (
-    <div className="container mt-5">
-      <h2 className="text-center mb-4">Order History (Accepted & Cancelled Orders)</h2> {/* Title updated */}
+  // Helper function for status badge
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case 'accepted':
+        return 'status-badge status-history-accepted';
+      case 'cancelled':
+        return 'status-badge status-history-cancelled';
+      default:
+        return 'status-badge status-history-default';
+    }
+  };
 
-      {error && <Alert variant="danger">{error}</Alert>}
+  const getStatusText = (status) => {
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
+  return (
+    <div className="orderhistorydashboard-container">
+      <div className="orderhistorydashboard-header">
+        <h2 className="orderhistorydashboard-title">
+          <i className="bi bi-clock-history me-3"></i>
+          Order History Dashboard
+        </h2>
+        <div className="title-underline"></div>
+        <p className="orderhistorydashboard-subtitle">View accepted and cancelled orders</p>
+      </div>
+
+      {error && <Alert variant="danger" className="custom-alert">{error}</Alert>}
 
       {loading ? (
-        <div className="text-center">
-          <Spinner animation="border" role="status">
+        <div className="loading-container">
+          <Spinner animation="border" variant="warning" role="status">
             <span className="visually-hidden">Loading order history...</span>
           </Spinner>
           <p className="mt-2">Loading order history...</p>
         </div>
       ) : (
-        <div>
+        <div className="orderhistorydashboard-content">
           {orderHistory.length > 0 ? (
             <div className="table-responsive">
-              <Table striped bordered hover responsive className="table-dark rounded overflow-hidden">
+              <table className="orderhistorydashboard-table">
                 <thead>
                   <tr>
                     <th>Order ID</th>
                     <th>Customer Name</th>
                     <th>Title</th>
                     <th>Amount</th>
-                    <th>Status</th> {/* Will be 'Accepted' or 'Cancelled' here */}
+                    <th>Status</th>
                     <th>Customer Feedback</th>
                   </tr>
                 </thead>
                 <tbody>
                   {orderHistory.map((order) => (
                     <tr key={order._id}>
-                      <td>{order._id}</td>
-                      <td>{order.userId ? order.userId.username : 'N/A'}</td>
-                      <td>{order.title}</td>
-                      <td>₹{order.orderAmount}</td>
+                      <td className="order-id">{order._id.slice(-8)}</td>
+                      <td className="customer-name">{order.userId ? order.userId.username : 'N/A'}</td>
+                      <td className="order-title">{order.title}</td>
+                      <td className="order-amount">₹{order.orderAmount}</td>
                       <td>
-                        <span className={`badge ${
-                            order.status === 'accepted' ? 'bg-success' : // Accepted by customer
-                            order.status === 'cancelled' ? 'bg-danger' : // Cancelled
-                            'bg-secondary' // Fallback for any other unexpected status
-                        }`}>
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        <span className={getStatusBadgeClass(order.status)}>
+                          <i className={`me-1 ${order.status === 'accepted' ? 'bi bi-check-circle-fill' : 'bi bi-x-circle-fill'}`}></i>
+                          {getStatusText(order.status)}
                         </span>
                       </td>
-                      <td>{order.feedback || '-'}</td>
+                      <td className="order-feedback">{order.feedback || '-'}</td>
                     </tr>
                   ))}
                 </tbody>
-              </Table>
+              </table>
             </div>
           ) : (
-            <p className="text-center text-muted">No accepted or cancelled orders in history.</p>
+            <div className="empty-state">
+              <i className="bi bi-inbox display-1"></i>
+              <p>No accepted or cancelled orders in history</p>
+              <p className="text-muted small">Orders accepted or cancelled by customers will appear here</p>
+            </div>
           )}
         </div>
       )}

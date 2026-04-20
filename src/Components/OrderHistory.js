@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Spinner, Alert, Table } from 'react-bootstrap';
+import { Spinner, Alert } from 'react-bootstrap';
+import './OrderHistory.css';
 
 function OrderHistory() {
   const [orderHistory, setOrderHistory] = useState([]);
@@ -11,14 +12,13 @@ function OrderHistory() {
     setLoading(true);
     setError('');
     try {
-      const token = localStorage.getItem('token'); // Get customer's token
+      const token = localStorage.getItem('token');
       if (!token) {
         setError('You need to be logged in to view your order history.');
         setLoading(false);
         return;
       }
 
-      // Fetch orders from the /api/my-orders endpoint
       const response = await fetch('http://localhost:5000/api/my-orders', {
         method: 'GET',
         headers: {
@@ -43,7 +43,6 @@ function OrderHistory() {
       }
 
       if (Array.isArray(result.orders)) {
-        // --- CRUCIAL CHANGE: Filter for orders that are 'accepted' OR 'cancelled' ---
         const filteredOrders = result.orders.filter(
           (order) => order.status === 'accepted' || order.status === 'cancelled'
         );
@@ -65,24 +64,47 @@ function OrderHistory() {
     fetchOrderHistory();
   }, []);
 
-  return (
-    <div className="container mt-5">
-      <h2 className="text-center mb-4">My Order History</h2> {/* Title adjusted as it now includes cancelled */}
+  // Helper function for status badge
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case 'accepted':
+        return 'status-badge status-history-accepted';
+      case 'cancelled':
+        return 'status-badge status-history-cancelled';
+      default:
+        return 'status-badge status-history-default';
+    }
+  };
 
-      {error && <Alert variant="danger">{error}</Alert>}
+  const getStatusText = (status) => {
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
+  return (
+    <div className="orderhistory-container">
+      <div className="orderhistory-header">
+        <h2 className="orderhistory-title">
+          <i className="bi bi-clock-history me-3"></i>
+          My Order History
+        </h2>
+        <div className="title-underline"></div>
+        <p className="orderhistory-subtitle">View your accepted and cancelled orders</p>
+      </div>
+
+      {error && <Alert variant="danger" className="custom-alert">{error}</Alert>}
 
       {loading ? (
-        <div className="text-center">
-          <Spinner animation="border" role="status">
+        <div className="loading-container">
+          <Spinner animation="border" variant="warning" role="status">
             <span className="visually-hidden">Loading your order history...</span>
           </Spinner>
           <p className="mt-2">Loading your order history...</p>
         </div>
       ) : (
-        <div>
+        <div className="orderhistory-content">
           {orderHistory.length > 0 ? (
             <div className="table-responsive">
-              <Table striped bordered hover responsive className="table-dark rounded overflow-hidden">
+              <table className="orderhistory-table">
                 <thead>
                   <tr>
                     <th>Order ID</th>
@@ -95,26 +117,27 @@ function OrderHistory() {
                 <tbody>
                   {orderHistory.map((order) => (
                     <tr key={order._id}>
-                      <td>{order._id}</td>
-                      <td>{order.title}</td>
-                      <td>₹{order.orderAmount}</td>
+                      <td className="order-id">{order._id.slice(-8)}</td>
+                      <td className="order-title">{order.title}</td>
+                      <td className="order-amount">₹{order.orderAmount}</td>
                       <td>
-                        <span className={`badge ${
-                            order.status === 'accepted' ? 'bg-success' : // Accepted by customer
-                            order.status === 'cancelled' ? 'bg-danger' : // Cancelled
-                            'bg-secondary' // Default fallback, though should be covered
-                        }`}>
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        <span className={getStatusBadgeClass(order.status)}>
+                          <i className={`me-1 ${order.status === 'accepted' ? 'bi bi-check-circle-fill' : 'bi bi-x-circle-fill'}`}></i>
+                          {getStatusText(order.status)}
                         </span>
                       </td>
-                      <td>{order.feedback || '-'}</td>
+                      <td className="order-feedback">{order.feedback || '-'}</td>
                     </tr>
                   ))}
                 </tbody>
-              </Table>
+              </table>
             </div>
           ) : (
-            <p className="text-center text-muted">No accepted or cancelled orders in your history.</p>
+            <div className="empty-state">
+              <i className="bi bi-inbox display-1"></i>
+              <p>No accepted or cancelled orders in your history</p>
+              <p className="text-muted small">Orders you accept or cancel will appear here</p>
+            </div>
           )}
         </div>
       )}

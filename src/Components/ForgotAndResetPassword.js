@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom"; // Added Link import
+import { Modal, Button, Spinner } from "react-bootstrap";
+import './ForgotAndResetPassword.css';
 
 // The main component for forgot and reset password functionality
 const ForgotAndResetPassword = () => {
@@ -12,6 +14,7 @@ const ForgotAndResetPassword = () => {
   const [userId, setUserId] = useState(""); // store userId after OTP verification
   const [timeLeft, setTimeLeft] = useState(0); // countdown in seconds
   const [showSuccess, setShowSuccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   // Timer effect to handle OTP expiry
@@ -29,14 +32,18 @@ const ForgotAndResetPassword = () => {
       return;
     }
 
+    setIsLoading(true);
+    setMessage("");
+
     try {
-      // This is the call to your backend, which will now use MSG91
       const res = await axios.post("http://localhost:5000/api/forgot-password", { mobile });
       setMessage(res.data.message);
       setStep("verify");
       setTimeLeft(240); // 4 min countdown
     } catch (err) {
       setMessage(err.response?.data?.message || "Error sending OTP. Try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -48,13 +55,18 @@ const ForgotAndResetPassword = () => {
       return;
     }
 
+    setIsLoading(true);
+    setMessage("");
+
     try {
       const res = await axios.post("http://localhost:5000/api/verify-otp", { mobile, otp });
       setMessage(res.data.message);
-      setUserId(res.data.userId); // Save userId for reset
+      setUserId(res.data.userId);
       setStep("reset");
     } catch (err) {
       setMessage(err.response?.data?.message || "OTP verification failed. Try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -66,6 +78,14 @@ const ForgotAndResetPassword = () => {
       return;
     }
 
+    if (password.length < 6) {
+      setMessage("Password must be at least 6 characters.");
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage("");
+
     try {
       const res = await axios.post("http://localhost:5000/api/reset-password", {
         userId,
@@ -74,77 +94,143 @@ const ForgotAndResetPassword = () => {
       setMessage(res.data.message);
       setShowSuccess(true);
       
-      // Redirect to the login page after a successful password reset
       setTimeout(() => {
         navigate('/login');
       }, 2000);
     } catch (err) {
       setMessage(err.response?.data?.message || "Password reset failed. Try again.");
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const renderStep = () => {
+  const handleCloseSuccess = () => {
+    setShowSuccess(false);
+    navigate('/login');
+  };
+
+  const renderStepContent = () => {
     switch (step) {
       case "forgot":
         return (
-          <form onSubmit={handleSendOtp} className="space-y-4">
-            <input
-              type="text"
-              placeholder="Enter registered mobile"
-              value={mobile}
-              onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
-            />
-            <button type="submit" className="w-full px-4 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-              Send OTP
+          <div className="step-content">
+            <div className="step-icon">
+              <i className="bi bi-phone-fill"></i>
+            </div>
+            <h3 className="step-title">Enter Mobile Number</h3>
+            <p className="step-description">We'll send a verification code to your registered mobile number</p>
+            <div className="input-group-custom">
+              <i className="bi bi-phone"></i>
+              <input
+                type="text"
+                placeholder="Enter registered mobile number"
+                value={mobile}
+                onChange={(e) => setMobile(e.target.value.replace(/\D/g, ""))}
+                maxLength="10"
+                className="custom-input"
+              />
+            </div>
+            <button 
+              type="submit" 
+              className="custom-btn custom-btn-primary"
+              disabled={isLoading || !mobile}
+            >
+              {isLoading ? (
+                <>
+                  <Spinner animation="border" size="sm" className="me-2" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-send me-2"></i>
+                  Send OTP
+                </>
+              )}
             </button>
-          </form>
+          </div>
         );
       case "verify":
         return (
-          <form onSubmit={handleVerifyOtp} className="space-y-4">
-            <input
-              type="text"
-              placeholder="Mobile"
-              value={mobile}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg bg-gray-100 cursor-not-allowed"
-              disabled
-            />
-            <input
-              type="text"
-              placeholder="Enter OTP"
-              value={otp}
-              onChange={(e) => setOtp(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
-            />
+          <div className="step-content">
+            <div className="step-icon">
+              <i className="bi bi-shield-lock-fill"></i>
+            </div>
+            <h3 className="step-title">Verify OTP</h3>
+            <p className="step-description">Enter the 6-digit code sent to {mobile}</p>
+            <div className="input-group-custom">
+              <i className="bi bi-key-fill"></i>
+              <input
+                type="text"
+                placeholder="Enter OTP"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                maxLength="6"
+                className="custom-input"
+              />
+            </div>
+            <div className="otp-timer">
+              <i className="bi bi-clock-history"></i>
+              <span className={timeLeft <= 60 ? "timer-warning" : ""}>
+                {timeLeft > 0 
+                  ? `OTP expires in ${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, "0")}`
+                  : "OTP has expired. Please request a new one."}
+              </span>
+            </div>
             <button 
               type="submit" 
-              className="w-full px-4 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-              disabled={timeLeft <= 0}
+              className="custom-btn custom-btn-success"
+              disabled={isLoading || !otp || timeLeft <= 0}
             >
-              Verify OTP
+              {isLoading ? (
+                <>
+                  <Spinner animation="border" size="sm" className="me-2" />
+                  Verifying...
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-check-circle me-2"></i>
+                  Verify OTP
+                </>
+              )}
             </button>
-            <p className="mt-2 text-center text-sm text-gray-500">
-              {timeLeft > 0 
-                ? `OTP expires in ${Math.floor(timeLeft / 60)}:${String(timeLeft % 60).padStart(2, "0")}`
-                : "OTP has expired. Please request a new one."}
-            </p>
-          </form>
+          </div>
         );
       case "reset":
         return (
-          <form onSubmit={handleResetPassword} className="space-y-4">
-            <input
-              type="password"
-              placeholder="New Password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
-            />
-            <button type="submit" className="w-full px-4 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-              Reset Password
+          <div className="step-content">
+            <div className="step-icon">
+              <i className="bi bi-key-fill"></i>
+            </div>
+            <h3 className="step-title">Reset Password</h3>
+            <p className="step-description">Create a new password for your account</p>
+            <div className="input-group-custom">
+              <i className="bi bi-lock-fill"></i>
+              <input
+                type="password"
+                placeholder="New Password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="custom-input"
+              />
+            </div>
+            <button 
+              type="submit" 
+              className="custom-btn custom-btn-primary"
+              disabled={isLoading || !password}
+            >
+              {isLoading ? (
+                <>
+                  <Spinner animation="border" size="sm" className="me-2" />
+                  Resetting...
+                </>
+              ) : (
+                <>
+                  <i className="bi bi-arrow-repeat me-2"></i>
+                  Reset Password
+                </>
+              )}
             </button>
-          </form>
+          </div>
         );
       default:
         return null;
@@ -152,23 +238,77 @@ const ForgotAndResetPassword = () => {
   };
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-100 p-4">
-      <div className="w-full max-w-sm bg-white p-8 rounded-xl shadow-2xl">
-        <h3 className="text-3xl font-extrabold text-center text-gray-800 mb-6">
-          Forgot / Reset Password
-        </h3>
-        {renderStep()}
+    <div className="forgot-password-container">
+      <div className="forgot-password-card">
+        <div className="card-header-custom">
+          <i className="bi bi-shield-lock card-icon"></i>
+          <h2 className="card-title">Forgot Password?</h2>
+          <div className="title-underline"></div>
+          <p className="card-subtitle">Reset your password in three simple steps</p>
+        </div>
+
+        <div className="steps-indicator">
+          <div className={`step-indicator ${step === "forgot" ? "active" : step === "verify" || step === "reset" ? "completed" : ""}`}>
+            <div className="step-number">1</div>
+            <span>Mobile</span>
+          </div>
+          <div className={`step-line ${step === "verify" || step === "reset" ? "active" : ""}`}></div>
+          <div className={`step-indicator ${step === "verify" ? "active" : step === "reset" ? "completed" : ""}`}>
+            <div className="step-number">2</div>
+            <span>Verify</span>
+          </div>
+          <div className={`step-line ${step === "reset" ? "active" : ""}`}></div>
+          <div className={`step-indicator ${step === "reset" ? "active" : ""}`}>
+            <div className="step-number">3</div>
+            <span>Reset</span>
+          </div>
+        </div>
+
+        <form onSubmit={
+          step === "forgot" ? handleSendOtp : 
+          step === "verify" ? handleVerifyOtp : 
+          handleResetPassword
+        }>
+          {renderStepContent()}
+        </form>
+
         {message && (
-          <p className={`mt-4 text-center text-sm font-medium ${message.includes('Error') || message.includes('failed') || message.includes('expired') ? 'text-red-500' : 'text-green-500'}`}>
+          <div className={`message-alert ${message.includes('Error') || message.includes('failed') || message.includes('expired') ? 'error' : 'success'}`}>
+            <i className={`bi ${message.includes('Error') || message.includes('failed') || message.includes('expired') ? 'bi-exclamation-triangle-fill' : 'bi-info-circle-fill'} me-2`}></i>
             {message}
-          </p>
-        )}
-        {showSuccess && (
-          <div className="mt-4 p-3 bg-green-100 text-green-700 rounded-lg text-center">
-            Password reset successfully! Redirecting to login...
           </div>
         )}
+
+        <div className="back-to-login">
+          <Link to="/login" className="back-link">
+            <i className="bi bi-arrow-left me-2"></i>
+            Back to Login
+          </Link>
+        </div>
       </div>
+
+      {/* Success Modal */}
+      <Modal show={showSuccess} onHide={handleCloseSuccess} centered className="success-modal">
+        <Modal.Header closeButton className="success-modal-header">
+          <Modal.Title>
+            <i className="bi bi-check-circle-fill me-2"></i>
+            Password Reset Successful!
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="success-modal-body">
+          <div className="success-icon">
+            <i className="bi bi-emoji-smile-fill"></i>
+          </div>
+          <p>Your password has been reset successfully!</p>
+          <p className="text-muted small">Redirecting you to login page...</p>
+        </Modal.Body>
+        <Modal.Footer className="success-modal-footer">
+          <Button className="success-btn" onClick={handleCloseSuccess}>
+            <i className="bi bi-box-arrow-in-right me-2"></i>
+            Go to Login
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 };

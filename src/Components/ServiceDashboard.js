@@ -1,46 +1,43 @@
 import React, { useState, useEffect } from "react";
 import { Table, Button, Modal, Form, Alert, Spinner } from "react-bootstrap";
 import axios from "axios";
+import './ServiceDashboard.css';
 
 const ServiceDashboard = () => {
   const [services, setServices] = useState([]);
-  const [loading, setLoading] = useState(true); // Added loading state
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
   const [showAddEditModal, setShowAddEditModal] = useState(false);
-  const [currentService, setCurrentService] = useState(null); // For editing
+  const [currentService, setCurrentService] = useState(null);
   const [newServiceData, setNewServiceData] = useState({
     title: "",
     pricePerSquareFoot: "",
-    image: null, // For file input
-    imagePath: "", // For displaying existing image path
+    image: null,
+    imagePath: "",
   });
 
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false);
   const [serviceToDelete, setServiceToDelete] = useState(null);
 
-  // Function to fetch services
   const fetchServices = async () => {
     setLoading(true);
     setError("");
     try {
-      // The GET /api/services route is publicly accessible, no token strictly needed
-      // for fetching, but it doesn't hurt if an admin token is present.
       const token = localStorage.getItem("token"); 
       const response = await axios.get("http://localhost:5000/api/services", {
         headers: {
-          ...(token && { Authorization: `Bearer ${token}` }), // Only add if token exists
+          ...(token && { Authorization: `Bearer ${token}` }),
         },
       });
 
-      // --- CRUCIAL FIX: Access response.data.services ---
       if (response.data && Array.isArray(response.data.services)) {
         setServices(response.data.services);
       } else {
         console.error("Unexpected data structure for services:", response.data);
         setError("Failed to load services: Unexpected data format from server.");
-        setServices([]); // Ensure it's an empty array to prevent map error
+        setServices([]);
       }
     } catch (err) {
       console.error("Error fetching services:", err);
@@ -49,27 +46,24 @@ const ServiceDashboard = () => {
       } else {
         setError("Failed to load services: Network error or backend not reachable.");
       }
-      setServices([]); // Ensure it's an empty array on error
+      setServices([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Initial fetch on component mount
   useEffect(() => {
     fetchServices();
   }, []);
 
-  // Handle input changes for add/edit form
   const handleInputChange = (e) => {
     const { name, value, files } = e.target;
     setNewServiceData((prev) => ({
       ...prev,
-      [name]: files ? files[0] : value, // Handle file input separately
+      [name]: files ? files[0] : value,
     }));
   };
 
-  // Open Add/Edit Modal
   const handleOpenAddEditModal = (service = null) => {
     setError("");
     setSuccessMessage("");
@@ -78,8 +72,8 @@ const ServiceDashboard = () => {
       setNewServiceData({
         title: service.title,
         pricePerSquareFoot: service.pricePerSquareFoot,
-        image: null, // Don't pre-fill file input
-        imagePath: service.imagePath, // Keep track of existing image path
+        image: null,
+        imagePath: service.imagePath,
       });
     } else {
       setNewServiceData({ title: "", pricePerSquareFoot: "", image: null, imagePath: "" });
@@ -87,7 +81,6 @@ const ServiceDashboard = () => {
     setShowAddEditModal(true);
   };
 
-  // Close Add/Edit Modal
   const handleCloseAddEditModal = () => {
     setShowAddEditModal(false);
     setCurrentService(null);
@@ -95,7 +88,6 @@ const ServiceDashboard = () => {
     setError("");
   };
 
-  // Handle Add/Update Service Submission
   const handleAddUpdateService = async (e) => {
     e.preventDefault();
     setError("");
@@ -111,39 +103,36 @@ const ServiceDashboard = () => {
     formData.append("title", newServiceData.title);
     formData.append("pricePerSquareFoot", newServiceData.pricePerSquareFoot);
     if (newServiceData.image) {
-      formData.append("image", newServiceData.image); // Append file if present
+      formData.append("image", newServiceData.image);
     } else if (currentService && newServiceData.imagePath) {
-      // If no new image, but editing an existing service, send the existing imagePath
       formData.append("imagePath", newServiceData.imagePath);
     }
 
     try {
       let response;
       if (currentService) {
-        // Update existing service
         response = await axios.put(
           `http://localhost:5000/api/services/${currentService._id}`,
           formData,
           {
             headers: {
               Authorization: `Bearer ${token}`,
-              "Content-Type": "multipart/form-data", // Important for file uploads
+              "Content-Type": "multipart/form-data",
             },
           }
         );
         setSuccessMessage("Service updated successfully!");
       } else {
-        // Add new service
         response = await axios.post("http://localhost:5000/api/services", formData, {
           headers: {
             Authorization: `Bearer ${token}`,
-            "Content-Type": "multipart/form-data", // Important for file uploads
+            "Content-Type": "multipart/form-data",
           },
         });
         setSuccessMessage("Service added successfully!");
       }
       handleCloseAddEditModal();
-      fetchServices(); // Refresh the list
+      fetchServices();
     } catch (err) {
       console.error("Error adding/updating service:", err);
       if (err.response) {
@@ -154,20 +143,17 @@ const ServiceDashboard = () => {
     }
   };
 
-  // Open Delete Confirmation Modal
   const handleOpenDeleteConfirmModal = (service) => {
     setServiceToDelete(service);
     setShowDeleteConfirmModal(true);
   };
 
-  // Close Delete Confirmation Modal
   const handleCloseDeleteConfirmModal = () => {
     setShowDeleteConfirmModal(false);
     setServiceToDelete(null);
     setError("");
   };
 
-  // Handle Delete Service
   const handleDeleteService = async () => {
     setError("");
     setSuccessMessage("");
@@ -185,7 +171,7 @@ const ServiceDashboard = () => {
       });
       setSuccessMessage("Service deleted successfully!");
       handleCloseDeleteConfirmModal();
-      fetchServices(); // Refresh the list
+      fetchServices();
     } catch (err) {
       console.error("Error deleting service:", err);
       if (err.response) {
@@ -198,142 +184,191 @@ const ServiceDashboard = () => {
 
   if (loading) {
     return (
-      <div className="text-center mt-5">
-        <Spinner animation="border" role="status">
+      <div className="servicedashboard-loading">
+        <Spinner animation="border" variant="warning" role="status">
           <span className="visually-hidden">Loading services...</span>
         </Spinner>
-        <p className="mt-2">Loading services...</p>
+        <p>Loading services...</p>
       </div>
     );
   }
 
   return (
-    <div className="container mt-5">
-      <h2 className="text-center mb-4">Service Management (Admin)</h2>
+    <div className="servicedashboard-container">
+      <div className="servicedashboard-header">
+        <h2 className="servicedashboard-title">
+          <i className="bi bi-gear-wide-connected me-3"></i>
+          Service Management
+        </h2>
+        <div className="title-underline"></div>
+        <p className="servicedashboard-subtitle">Manage your service offerings</p>
+      </div>
 
-      {error && <Alert variant="danger">{error}</Alert>}
-      {successMessage && <Alert variant="success">{successMessage}</Alert>}
+      {error && <Alert variant="danger" className="custom-alert">{error}</Alert>}
+      {successMessage && <Alert variant="success" className="custom-alert">{successMessage}</Alert>}
 
-      <Button variant="success" className="mb-3" onClick={() => handleOpenAddEditModal()}>
+      <button className="servicedashboard-add-btn" onClick={() => handleOpenAddEditModal()}>
+        <i className="bi bi-plus-circle me-2"></i>
         Add New Service
-      </Button>
+      </button>
 
       {services.length > 0 ? (
-        <Table striped bordered hover responsive>
-          <thead>
-            <tr>
-              <th>Image</th>
-              <th>Title</th>
-              <th>Price per Sq. Ft.</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {services.map((service) => (
-              <tr key={service._id}>
-                <td>
-                  {service.imagePath ? (
-                    <img
-                      src={`http://localhost:5000${service.imagePath}`}
-                      alt={service.title}
-                      style={{ width: "50px", height: "50px", objectFit: "cover" }}
-                      onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/50x50?text=No'; }}
-                    />
-                  ) : (
-                    "No Image"
-                  )}
-                </td>
-                <td>{service.title}</td>
-                <td>₹{service.pricePerSquareFoot}</td>
-                <td>
-                  <Button
-                    variant="warning"
-                    size="sm"
-                    className="me-2"
-                    onClick={() => handleOpenAddEditModal(service)}
-                  >
-                    Edit
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={() => handleOpenDeleteConfirmModal(service)}
-                  >
-                    Delete
-                  </Button>
-                </td>
+        <div className="table-responsive">
+          <table className="servicedashboard-table">
+            <thead>
+              <tr>
+                <th>Image</th>
+                <th>Title</th>
+                <th>Price per Sq. Ft.</th>
+                <th>Actions</th>
               </tr>
-            ))}
-          </tbody>
-        </Table>
+            </thead>
+            <tbody>
+              {services.map((service) => (
+                <tr key={service._id}>
+                  <td className="service-image">
+                    {service.imagePath ? (
+                      <img
+                        src={`http://localhost:5000${service.imagePath}`}
+                        alt={service.title}
+                        onError={(e) => { e.target.onerror = null; e.target.src = 'https://placehold.co/50x50/2a2a2a/ffc107?text=No'; }}
+                      />
+                    ) : (
+                      <div className="no-image-placeholder">
+                        <i className="bi bi-image"></i>
+                      </div>
+                    )}
+                  </td>
+                  <td className="service-title">{service.title}</td>
+                  <td className="service-price">₹{service.pricePerSquareFoot}</td>
+                  <td className="service-actions">
+                    <button
+                      className="action-btn action-edit"
+                      onClick={() => handleOpenAddEditModal(service)}
+                    >
+                      <i className="bi bi-pencil-square me-1"></i>
+                      Edit
+                    </button>
+                    <button
+                      className="action-btn action-delete"
+                      onClick={() => handleOpenDeleteConfirmModal(service)}
+                    >
+                      <i className="bi bi-trash me-1"></i>
+                      Delete
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       ) : (
-        <Alert variant="info" className="text-center">No services found. Add a new service!</Alert>
+        <div className="empty-state">
+          <i className="bi bi-tools display-1"></i>
+          <p>No services found</p>
+          <p className="text-muted small">Click "Add New Service" to get started</p>
+        </div>
       )}
 
-
       {/* Add/Edit Service Modal */}
-      <Modal show={showAddEditModal} onHide={handleCloseAddEditModal}>
-        <Modal.Header closeButton>
-          <Modal.Title>{currentService ? "Edit Service" : "Add New Service"}</Modal.Title>
+      <Modal show={showAddEditModal} onHide={handleCloseAddEditModal} centered className="servicedashboard-modal">
+        <Modal.Header closeButton className="servicedashboard-modal-header">
+          <Modal.Title>
+            {currentService ? (
+              <><i className="bi bi-pencil-square me-2"></i>Edit Service</>
+            ) : (
+              <><i className="bi bi-plus-circle me-2"></i>Add New Service</>
+            )}
+          </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
+        <Modal.Body className="servicedashboard-modal-body">
           <Form onSubmit={handleAddUpdateService}>
             <Form.Group controlId="title" className="mb-3">
-              <Form.Label>Title</Form.Label>
+              <Form.Label className="form-label">
+                <i className="bi bi-tag-fill me-2"></i>
+                Service Title
+              </Form.Label>
               <Form.Control
                 type="text"
                 name="title"
                 value={newServiceData.title}
                 onChange={handleInputChange}
                 required
+                className="servicedashboard-input"
+                placeholder="Enter service title"
               />
             </Form.Group>
             <Form.Group controlId="pricePerSquareFoot" className="mb-3">
-              <Form.Label>Price per Sq. Ft.</Form.Label>
+              <Form.Label className="form-label">
+                <i className="bi bi-currency-rupee me-2"></i>
+                Price per Sq. Ft.
+              </Form.Label>
               <Form.Control
                 type="number"
                 name="pricePerSquareFoot"
                 value={newServiceData.pricePerSquareFoot}
                 onChange={handleInputChange}
                 required
+                className="servicedashboard-input"
+                placeholder="Enter price"
+                min="0"
+                step="0.01"
               />
             </Form.Group>
             <Form.Group controlId="image" className="mb-3">
-              <Form.Label>Service Image</Form.Label>
-              <Form.Control type="file" name="image" onChange={handleInputChange} accept="image/*" />
+              <Form.Label className="form-label">
+                <i className="bi bi-image-fill me-2"></i>
+                Service Image
+              </Form.Label>
+              <Form.Control 
+                type="file" 
+                name="image" 
+                onChange={handleInputChange} 
+                accept="image/*"
+                className="servicedashboard-file"
+              />
               {currentService && newServiceData.imagePath && (
-                <small className="text-muted mt-2 d-block">
-                  Current Image: <a href={`http://localhost:5000${newServiceData.imagePath}`} target="_blank" rel="noopener noreferrer">View</a> (Upload new to replace)
+                <div className="current-image-preview">
+                  <small>Current Image:</small>
                   <img
                     src={`http://localhost:5000${newServiceData.imagePath}`}
                     alt="Current"
-                    style={{ width: "80px", height: "80px", objectFit: "cover", marginLeft: "10px", borderRadius: "5px" }}
                   />
-                </small>
+                  <small className="text-muted">Upload new to replace</small>
+                </div>
               )}
             </Form.Group>
-            <Button variant="primary" type="submit">
+            <button type="submit" className="servicedashboard-submit-btn">
+              <i className="bi bi-save-fill me-2"></i>
               {currentService ? "Update Service" : "Add Service"}
-            </Button>
+            </button>
           </Form>
         </Modal.Body>
       </Modal>
 
       {/* Delete Confirmation Modal */}
-      <Modal show={showDeleteConfirmModal} onHide={handleCloseDeleteConfirmModal}>
-        <Modal.Header closeButton>
-          <Modal.Title>Confirm Deletion</Modal.Title>
+      <Modal show={showDeleteConfirmModal} onHide={handleCloseDeleteConfirmModal} centered className="servicedashboard-modal">
+        <Modal.Header closeButton className="servicedashboard-modal-header">
+          <Modal.Title>
+            <i className="bi bi-exclamation-triangle-fill me-2"></i>
+            Confirm Deletion
+          </Modal.Title>
         </Modal.Header>
-        <Modal.Body>
-          Are you sure you want to delete the service: <strong>{serviceToDelete?.title}</strong>?
+        <Modal.Body className="servicedashboard-modal-body text-center">
+          <i className="bi bi-question-circle display-1 text-warning mb-3 d-block"></i>
+          <p>Are you sure you want to delete the service:</p>
+          <p className="fw-bold text-gold">{serviceToDelete?.title}</p>
+          <p className="text-muted small">This action cannot be undone.</p>
         </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={handleCloseDeleteConfirmModal}>
+        <Modal.Footer className="servicedashboard-modal-footer">
+          <button className="modal-btn modal-cancel" onClick={handleCloseDeleteConfirmModal}>
+            <i className="bi bi-arrow-left me-2"></i>
             Cancel
-          </Button>
-          <Button variant="danger" onClick={handleDeleteService}>
-            Delete
-          </Button>
+          </button>
+          <button className="modal-btn modal-danger" onClick={handleDeleteService}>
+            <i className="bi bi-trash me-2"></i>
+            Delete Service
+          </button>
         </Modal.Footer>
       </Modal>
     </div>

@@ -1,57 +1,117 @@
-import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Modal, Button } from 'react-bootstrap';
+import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Modal, Button, Spinner } from "react-bootstrap";
+import axios from "axios";
+import "./Logout.css";
+
+const API_URL =
+  process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const Logout = () => {
   const navigate = useNavigate();
-  const [showSuccess, setShowSuccess] = useState(false); // For modal visibility
+
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const logoutUser = async () => {
       try {
-        const response = await fetch('http://localhost:5000/api/logout', {
-          method: 'POST',
-          credentials: 'include', // Include cookies for session
-        });
+        const token = localStorage.getItem("token");
 
-        if (response.ok) {
-          console.log('Logout successful');
-          localStorage.removeItem('isLoggedIn'); // Clear login state
-          setShowSuccess(true); // Show the success modal
-        } else {
-          console.error('Logout failed:', await response.json());
-        }
+        await axios.post(
+          `${API_URL}/api/logout`,
+          {},
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+            withCredentials: true,
+          }
+        );
+
+        console.log("Logout successful");
+
+        // Clear local storage
+        localStorage.removeItem("token");
+        localStorage.removeItem("customerName");
+        localStorage.removeItem("role");
+        localStorage.removeItem("isLoggedIn");
+
+        // Show success modal
+        setShowSuccess(true);
       } catch (error) {
-        console.error('Error during logout:', error);
+        console.error("Logout error:", error.message);
+
+        // Even if backend fails — logout locally
+        localStorage.clear();
+        setShowSuccess(true);
+      } finally {
+        setLoading(false);
       }
     };
 
     logoutUser();
   }, []);
 
-  const handleCloseSuccess = () => {
+  const handleClose = () => {
     setShowSuccess(false);
-    // Redirect to the login page after closing the modal
-    navigate('/login');
+    navigate("/login");
   };
 
   return (
-    <div className="container text-center">
-      <h1>Logging out...</h1>
-      <p>You will be redirected to the login page shortly.</p>
-debugger
-      {/* Modal for Successful Logout */}
-      <Modal show={showSuccess} onHide={handleCloseSuccess} centered>
-        <Modal.Header closeButton>
-          <Modal.Title>Logout Successful</Modal.Title>
+    <div className="logout-container">
+
+      {/* Loading Spinner */}
+      {loading && (
+        <div className="logout-loading">
+          <Spinner animation="border" variant="warning" />
+          <p className="mt-3">Logging out...</p>
+        </div>
+      )}
+
+      {/* Success Modal */}
+      <Modal
+        show={showSuccess}
+        centered
+        backdrop="static"
+        keyboard={false}
+      >
+        <Modal.Header>
+          <Modal.Title className="text-success">
+            Logout Successful
+          </Modal.Title>
         </Modal.Header>
-        <Modal.Body>You have been logged out successfully!</Modal.Body>
+
+        <Modal.Body className="text-center">
+
+          <i
+            className="bi bi-check-circle-fill text-success"
+            style={{ fontSize: "50px" }}
+          ></i>
+
+          <h4 className="mt-3">
+            You have logged out successfully!
+          </h4>
+
+          <p className="text-muted">
+            Thank you for visiting Omkar Steel Fabricators
+          </p>
+
+        </Modal.Body>
+
         <Modal.Footer>
-          <Button variant="primary" onClick={handleCloseSuccess}>
-            Close
+
+          <Button
+            variant="warning"
+            onClick={handleClose}
+          >
+            Go to Login
           </Button>
+
         </Modal.Footer>
+
       </Modal>
+
     </div>
   );
 };

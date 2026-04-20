@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Button, Form, Spinner, Alert } from 'react-bootstrap'; // Import Form, Spinner, Alert
+import { Modal, Button, Form, Spinner, Alert } from 'react-bootstrap';
+import './MyOrder.css';
 
 function MyOrders() {
   const [orders, setOrders] = useState([]);
@@ -8,18 +9,19 @@ function MyOrders() {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
   const [currentOrderForFeedback, setCurrentOrderForFeedback] = useState(null);
   const [feedbackMessage, setFeedbackMessage] = useState('');
-  const [feedbackType, setFeedbackType] = useState(''); // 'accept' or 'reject'
+  const [feedbackType, setFeedbackType] = useState('');
   const [feedbackValidationError, setFeedbackValidationError] = useState('');
   const [actionSuccessMessage, setActionSuccessMessage] = useState('');
-
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [orderToCancel, setOrderToCancel] = useState(null);
 
   // Fetch orders
   const fetchOrders = async () => {
     setLoading(true);
-    setError(''); // Clear previous errors
-    setActionSuccessMessage(''); // Clear previous success messages
+    setError('');
+    setActionSuccessMessage('');
     try {
-      const token = localStorage.getItem('token'); // Get customer's token
+      const token = localStorage.getItem('token');
       if (!token) {
         setError('No authentication token found. Please log in.');
         setLoading(false);
@@ -50,12 +52,11 @@ function MyOrders() {
       }
 
       if (Array.isArray(result.orders)) {
-        // --- CRUCIAL CHANGE: Filter out 'accepted', 'rejected', AND 'cancelled' orders ---
         const activeOrders = result.orders.filter(
           (order) =>
             order.status !== 'accepted' &&
             order.status !== 'rejected' &&
-            order.status !== 'cancelled' // NEW: Exclude cancelled orders from this customer's active view
+            order.status !== 'cancelled'
         );
         setOrders(activeOrders);
       } else {
@@ -70,14 +71,13 @@ function MyOrders() {
     }
   };
 
-  // Cancel order (for 'pending' status)
-  const handleCancelOrder = async (orderId) => {
-    setError(''); // Clear previous errors
-    setActionSuccessMessage(''); // Clear previous success messages
-    // Replaced window.confirm with a custom modal for better UX (as per guidelines)
-    if (!await confirmAction("Are you sure you want to cancel this order?")) {
-      return; // User cancelled the action
-    }
+  // Cancel order
+  const handleCancelOrder = async () => {
+    if (!orderToCancel) return;
+    
+    setError('');
+    setActionSuccessMessage('');
+    setShowCancelConfirm(false);
 
     try {
       const token = localStorage.getItem('token');
@@ -86,7 +86,7 @@ function MyOrders() {
         return;
       }
 
-      const response = await fetch(`http://localhost:5000/api/orders/${orderId}/cancel`, {
+      const response = await fetch(`http://localhost:5000/api/orders/${orderToCancel}/cancel`, {
         method: 'PUT',
         headers: {
           Authorization: `Bearer ${token}`,
@@ -100,33 +100,20 @@ function MyOrders() {
       }
 
       setActionSuccessMessage('Order cancelled successfully!');
-      fetchOrders(); // Refresh orders after cancellation
+      fetchOrders();
+      setOrderToCancel(null);
     } catch (err) {
       console.error('Network error cancelling order:', err);
       setError('An error occurred while cancelling order.');
     }
   };
 
-  // Custom confirmation function (replaces window.confirm)
-  const confirmAction = (message) => {
-    return new Promise((resolve) => {
-      // You can implement a Bootstrap modal here for confirmation
-      // For simplicity, let's keep it as a basic alert for now,
-      // but ideally you'd have a state-driven modal for this.
-      if (window.confirm(message)) { // Temporarily using window.confirm
-        resolve(true);
-      } else {
-        resolve(false);
-      }
-    });
-  };
-
-  // Open feedback modal for Accept/Reject
+  // Open feedback modal
   const openFeedbackModal = (order, type) => {
     setCurrentOrderForFeedback(order);
     setFeedbackType(type);
-    setFeedbackMessage(order.feedback || ''); // Pre-fill if existing feedback
-    setFeedbackValidationError(''); // Clear previous validation errors
+    setFeedbackMessage(order.feedback || '');
+    setFeedbackValidationError('');
     setShowFeedbackModal(true);
   };
 
@@ -139,11 +126,11 @@ function MyOrders() {
     setFeedbackValidationError('');
   };
 
-  // Submit feedback (Accept/Reject action)
+  // Submit feedback
   const submitFeedback = async () => {
-    setError(''); // Clear previous errors
-    setActionSuccessMessage(''); // Clear previous success messages
-    setFeedbackValidationError(''); // Clear internal validation error
+    setError('');
+    setActionSuccessMessage('');
+    setFeedbackValidationError('');
 
     if (feedbackType === 'reject' && !feedbackMessage.trim()) {
       setFeedbackValidationError('Feedback is mandatory for rejecting an order.');
@@ -159,13 +146,13 @@ function MyOrders() {
       }
 
       const response = await fetch(`http://localhost:5000/api/orders/${currentOrderForFeedback._id}/review`, {
-        method: 'PUT', // Use PUT for updating
+        method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          action: feedbackType, // 'accept' or 'reject'
+          action: feedbackType,
           feedback: feedbackMessage.trim(),
         }),
       });
@@ -177,10 +164,10 @@ function MyOrders() {
         return;
       }
 
-      const successMsg = feedbackType === 'accepted' ? 'Order accepted successfully!' : 'Order rejected successfully!';
+      const successMsg = feedbackType === 'accept' ? 'Order accepted successfully!' : 'Order rejected successfully!';
       setActionSuccessMessage(successMsg);
-      fetchOrders(); // Re-fetch orders to reflect the new status (which will now filter out this order)
-      closeFeedbackModal(); // Close modal on success
+      fetchOrders();
+      closeFeedbackModal();
     } catch (err) {
       console.error('Network error submitting feedback:', err);
       setError('An error occurred while submitting feedback.');
@@ -188,96 +175,122 @@ function MyOrders() {
     }
   };
 
+  // Helper function for status badge
+  const getStatusBadgeClass = (status) => {
+    switch (status) {
+      case 'pending':
+        return 'status-badge status-pending';
+      case 'confirmed':
+        return 'status-badge status-confirmed';
+      case 'processing':
+        return 'status-badge status-processing';
+      case 'shipped':
+        return 'status-badge status-shipped';
+      case 'delivered':
+        return 'status-badge status-delivered';
+      case 'cancelled':
+        return 'status-badge status-cancelled';
+      case 'accepted':
+        return 'status-badge status-accepted';
+      case 'rejected':
+        return 'status-badge status-rejected';
+      default:
+        return 'status-badge status-default';
+    }
+  };
+
+  const getStatusText = (status) => {
+    return status.charAt(0).toUpperCase() + status.slice(1);
+  };
+
   useEffect(() => {
     fetchOrders();
   }, []);
 
   return (
-    <div className="container mt-5">
-      <h2 className="text-center mb-4">My Active Orders</h2> {/* Title changed for clarity */}
+    <div className="myorders-container">
+      <div className="myorders-header">
+        <h2 className="myorders-title">
+          <i className="bi bi-cart-check me-3"></i>
+          My Active Orders
+        </h2>
+        <div className="title-underline"></div>
+        <p className="myorders-subtitle">Track and manage your orders</p>
+      </div>
 
-      {error && <Alert variant="danger">{error}</Alert>}
-      {actionSuccessMessage && <Alert variant="success">{actionSuccessMessage}</Alert>}
+      {error && <Alert variant="danger" className="custom-alert">{error}</Alert>}
+      {actionSuccessMessage && <Alert variant="success" className="custom-alert">{actionSuccessMessage}</Alert>}
 
       {loading ? (
-        <div className="text-center">
-          <Spinner animation="border" role="status">
+        <div className="loading-container">
+          <Spinner animation="border" variant="warning" role="status">
             <span className="visually-hidden">Loading orders...</span>
           </Spinner>
-          <p className="mt-2">Loading orders...</p>
+          <p className="mt-2">Loading your orders...</p>
         </div>
       ) : (
-        <div>
+        <div className="myorders-content">
           {orders.length > 0 ? (
             <div className="table-responsive">
-              <table className="table table-bordered table-dark table-hover rounded overflow-hidden">
+              <table className="myorders-table">
                 <thead>
                   <tr>
                     <th>Order ID</th>
                     <th>Title</th>
                     <th>Amount</th>
                     <th>Status</th>
-                    <th>Feedback</th> {/* Display feedback */}
+                    <th>Feedback</th>
                     <th>Action</th>
                   </tr>
                 </thead>
                 <tbody>
                   {orders.map((order) => (
                     <tr key={order._id}>
-                      <td>{order._id}</td>
-                      <td>{order.title}</td>
-                      <td>₹{order.orderAmount}</td>
+                      <td className="order-id">{order._id.slice(-8)}</td>
+                      <td className="order-title">{order.title}</td>
+                      <td className="order-amount">₹{order.orderAmount}</td>
                       <td>
-                        <span className={`badge ${
-                            order.status === 'pending' ? 'bg-info' :
-                            order.status === 'manufacturing started' ? 'bg-warning text-dark' :
-                            order.status === 'completed' ? 'bg-secondary' :
-                            order.status === 'delivered' ? 'bg-primary' : // Changed to primary to distinguish from accepted
-                            // No need for 'accepted', 'rejected', 'cancelled' here as they are filtered out
-                            'bg-light text-dark' // Default/fallback
-                        }`}>
-                          {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                        <span className={getStatusBadgeClass(order.status)}>
+                          {getStatusText(order.status)}
                         </span>
                       </td>
-                      <td>{order.feedback || '-'}</td> {/* Display feedback or '-' if none */}
-                      <td>
-                        {/* Only show Cancel button if status is pending */}
+                      <td className="order-feedback">{order.feedback || '-'}</td>
+                      <td className="order-actions">
                         {order.status === 'pending' && (
-                          <Button
-                            variant="danger"
-                            size="sm"
-                            onClick={() => handleCancelOrder(order._id)}
-                            className="rounded-md"
+                          <button
+                            className="action-btn action-cancel"
+                            onClick={() => {
+                              setOrderToCancel(order._id);
+                              setShowCancelConfirm(true);
+                            }}
                           >
+                            <i className="bi bi-x-circle me-1"></i>
                             Cancel
-                          </Button>
+                          </button>
                         )}
-                        {/* Show Accept/Reject buttons only if status is delivered */}
                         {order.status === 'delivered' && (
-                          <>
-                            <Button
-                              variant="success"
-                              size="sm"
+                          <div className="action-group">
+                            <button
+                              className="action-btn action-accept"
                               onClick={() => openFeedbackModal(order, 'accept')}
-                              className="me-2 rounded-md"
                             >
+                              <i className="bi bi-check-circle me-1"></i>
                               Accept
-                            </Button>
-                            <Button
-                              variant="warning"
-                              size="sm"
+                            </button>
+                            <button
+                              className="action-btn action-reject"
                               onClick={() => openFeedbackModal(order, 'reject')}
-                              className="rounded-md"
                             >
+                              <i className="bi bi-x-circle me-1"></i>
                               Reject
-                            </Button>
-                          </>
+                            </button>
+                          </div>
                         )}
-                        {/* No action buttons for other statuses (manufacturing started, completed) */}
-                        {(order.status === 'manufacturing started' || order.status === 'completed') && (
-                             <span className="badge bg-secondary">
-                                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                            </span>
+                        {(order.status === 'processing' || order.status === 'shipped' || order.status === 'confirmed') && (
+                          <span className="status-badge status-processing-small">
+                            <i className="bi bi-clock-history me-1"></i>
+                            In Progress
+                          </span>
                         )}
                       </td>
                     </tr>
@@ -286,43 +299,89 @@ function MyOrders() {
               </table>
             </div>
           ) : (
-            <p className="text-center text-muted">No active orders available. Your accepted, rejected, or cancelled orders will appear in 'My Order History'.</p>
+            <div className="empty-state">
+              <i className="bi bi-inbox display-1"></i>
+              <p>No active orders available</p>
+              <p className="text-muted small">Your accepted, rejected, or cancelled orders will appear in Order History</p>
+            </div>
           )}
         </div>
       )}
 
       {/* Feedback Modal */}
-      <Modal show={showFeedbackModal} onHide={closeFeedbackModal} centered>
-        <Modal.Header closeButton className="bg-dark text-light">
-          <Modal.Title style={{ fontFamily: 'Arial Black' }}>
-            {feedbackType === 'accept' ? 'Accept Order' : 'Reject Order'}
+      <Modal show={showFeedbackModal} onHide={closeFeedbackModal} centered className="custom-modal">
+        <Modal.Header closeButton className="custom-modal-header">
+          <Modal.Title>
+            {feedbackType === 'accept' ? (
+              <><i className="bi bi-check-circle-fill me-2"></i>Accept Order</>
+            ) : (
+              <><i className="bi bi-x-circle-fill me-2"></i>Reject Order</>
+            )}
           </Modal.Title>
         </Modal.Header>
-        <Modal.Body className="bg-dark text-light">
-          <p>Order: {currentOrderForFeedback?.title} (ID: {currentOrderForFeedback?._id})</p>
-          <Form.Group className="mb-3">
-            <Form.Label>Feedback {feedbackType === 'reject' && '(Mandatory)'}:</Form.Label>
+        <Modal.Body className="custom-modal-body">
+          <div className="order-info">
+            <p><strong>Order:</strong> {currentOrderForFeedback?.title}</p>
+            <p><strong>ID:</strong> {currentOrderForFeedback?._id?.slice(-8)}</p>
+          </div>
+          <Form.Group className="feedback-form-group">
+            <Form.Label>
+              {feedbackType === 'reject' ? (
+                <><i className="bi bi-chat-text-fill me-2"></i>Feedback <span className="required">*</span></>
+              ) : (
+                <><i className="bi bi-chat-text-fill me-2"></i>Feedback (Optional)</>
+              )}
+            </Form.Label>
             <Form.Control
               as="textarea"
               rows={3}
               value={feedbackMessage}
               onChange={(e) => setFeedbackMessage(e.target.value)}
-              placeholder={feedbackType === 'reject' ? 'Please provide a reason for rejection...' : 'Optional feedback...'}
-              isInvalid={!!feedbackValidationError} // Mark as invalid if there's a validation error
-              className="bg-secondary text-light rounded-md"
+              placeholder={feedbackType === 'reject' 
+                ? "Please provide a reason for rejection..." 
+                : "Share your experience with this order..."}
+              isInvalid={!!feedbackValidationError}
+              className="feedback-textarea"
             />
             <Form.Control.Feedback type="invalid">
               {feedbackValidationError}
             </Form.Control.Feedback>
           </Form.Group>
         </Modal.Body>
-        <Modal.Footer className="bg-dark">
-          <Button variant="secondary" onClick={closeFeedbackModal} className="rounded-md">
+        <Modal.Footer className="custom-modal-footer">
+          <button className="modal-btn modal-cancel" onClick={closeFeedbackModal}>
+            <i className="bi bi-arrow-left me-2"></i>
             Cancel
-          </Button>
-          <Button variant="primary" onClick={submitFeedback} className="rounded-md">
+          </button>
+          <button className="modal-btn modal-submit" onClick={submitFeedback}>
+            <i className="bi bi-send me-2"></i>
             Submit
-          </Button>
+          </button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Cancel Confirmation Modal */}
+      <Modal show={showCancelConfirm} onHide={() => setShowCancelConfirm(false)} centered className="custom-modal">
+        <Modal.Header closeButton className="custom-modal-header">
+          <Modal.Title>
+            <i className="bi bi-exclamation-triangle-fill me-2"></i>
+            Confirm Cancellation
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body className="custom-modal-body text-center">
+          <i className="bi bi-question-circle display-1 text-warning mb-3 d-block"></i>
+          <p>Are you sure you want to cancel this order?</p>
+          <p className="text-muted small">This action cannot be undone.</p>
+        </Modal.Body>
+        <Modal.Footer className="custom-modal-footer">
+          <button className="modal-btn modal-cancel" onClick={() => setShowCancelConfirm(false)}>
+            <i className="bi bi-arrow-left me-2"></i>
+            No, Go Back
+          </button>
+          <button className="modal-btn modal-danger" onClick={handleCancelOrder}>
+            <i className="bi bi-trash me-2"></i>
+            Yes, Cancel Order
+          </button>
         </Modal.Footer>
       </Modal>
     </div>
