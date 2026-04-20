@@ -1,0 +1,876 @@
+/* src/Components/Home.css */
+
+/* ==================== PREMIUM VARIABLES ==================== */
+:root {
+  --business-blue: #0a66c2;
+  --business-navy: #0a0a2a;
+  --business-dark: #050510;
+  --business-gold: #ffc107;
+  --business-gold-dark: #e0a800;
+  --business-white: #ffffff;
+  --business-gray: #6c757d;
+  --business-light-gray: #f8f9fa;
+  --business-success: #28a745;
+  --business-premium: #d4af37;
+  --business-cyan: #00b4d8;
+  --business-purple: #7209b7;
+  --shadow-sm: 0 5px 20px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 10px 30px rgba(0, 0, 0, 0.12);
+  --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.15);
+  --shadow-xl: 0 30px 60px rgba(0, 0, 0, 0.2);
+  --glow-gold: 0 0 20px rgba(255, 193, 7, 0.4);
+  --glow-blue: 0 0 20px rgba(10, 102, 194, 0.4);
+}
+
+/* ==================== GLOBAL ROUNDED CONTAINER ==================== */
+body {
+  background: linear-gradient(135deg, var(--business-dark) 0%, var(--business-navy) 100%);
+  margin: 0;
+  padding: 20px;
+}
+
+#root {
+  max-width: 1400px;
+  margin: 0 auto;
+  background: transparent;
+}
+
+/* ==================== HERO SECTION ==================== */
+.hero-section {
+  position: relative;
+  background: linear-gradient(135deg, var(--business-dark) 0%, var(--business-navy) 50%, #0a0a3a 100%);
+  min-height: 85vh;
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border-radius: 40px;
+  margin-bottom: 30px;
+  box-shadow: var(--shadow-lg);
+}
+
+.hero-section::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 320"><path fill="rgba(255,193,7,0.08)" fill-opacity="1" d="M0,96L48,112C96,128,192,160,288,160C384,160,480,128,576,122.7C672,117,768,139,864,154.7C960,171,1056,181,1152,165.3C1248,149,1344,107,1392,85.3L1440,64L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z"></path></svg>');
+  background-repeat: no-repeat;
+  background-position: bottom;
+  background-size: cover;
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.hero-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at 30% 50%, rgba(255,193,7,0.15) 0%, transparent 60%);
+  animation: pulseGlow 4s ease-in-out infinite;
+}
+
+@keyframes pulseGlow {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+/* Floating Particles */
+.hero-section::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-image: radial-gradient(circle at 20% 30%, rgba(255,193,7,0.1) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  animation: floatParticles 20s linear infinite;
+}
+
+@keyframes floatParticles {
+  0% { background-position: 0 0; }
+  100% { background-position: 100px 100px; }
+}
+
+/* Text Styles */
+.text-gold {
+  color: var(--business-gold) !important;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  position: relative;
+  display: inline-block;
+  animation: textGlow 2s ease-in-out infinite;
+}
+
+@keyframes textGlow {
+  0%, 100% { text-shadow: 0 0 5px rgba(255,193,7,0.5); }
+  50% { text-shadow: 0 0 20px rgba(255,193,7,0.8); }
+}
+
+.text-light-white {
+  color: var(--business-white);
+  opacity: 0.9;
+  font-weight: 300;
+  letter-spacing: 1px;
+}
+
+/* ==================== GRADIENT TEXT - 3D EFFECT ==================== */
+.gradient-text-business {
+  background: linear-gradient(135deg, var(--business-gold) 0%, var(--business-premium) 30%, #fff3cd 60%, var(--business-gold) 100%);
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shine3D 4s linear infinite;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+@keyframes shine3D {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+/* ==================== BUSINESS BUTTON - 3D RIPPLE EFFECT ==================== */
+.btn-business {
+  background: linear-gradient(45deg, var(--business-gold), var(--business-gold-dark));
+  border: none;
+  color: var(--business-navy);
+  font-weight: 700;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  letter-spacing: 1px;
+  z-index: 1;
+  border-radius: 50px !important;
+}
+
+.btn-business::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.5);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+  z-index: -1;
+}
+
+.btn-business:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+.btn-business:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 15px 30px rgba(255,193,7,0.4);
+  color: var(--business-dark);
+}
+
+/* ==================== FEATURES SECTION ==================== */
+.features-section-business {
+  background: linear-gradient(135deg, var(--business-light-gray) 0%, #ffffff 50%, var(--business-light-gray) 100%);
+  padding: 5rem 0;
+  position: relative;
+  border-radius: 40px;
+  margin: 30px 0;
+  box-shadow: var(--shadow-md);
+}
+
+.features-section-business::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--business-gold), transparent);
+}
+
+.business-title {
+  color: var(--business-navy);
+  font-weight: 800;
+  font-size: 2.5rem;
+  position: relative;
+  display: inline-block;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, var(--business-navy), var(--business-blue));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.business-title-gold {
+  background: linear-gradient(135deg, var(--business-gold), var(--business-premium));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-weight: 800;
+}
+
+/* ==================== BUSINESS CARDS - FULLY ROUNDED ==================== */
+.business-card {
+  transition: all 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  background: white;
+  border-radius: 30px !important;
+  overflow: hidden;
+  position: relative;
+  border: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.business-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 5px;
+  background: linear-gradient(90deg, var(--business-gold), var(--business-premium), var(--business-cyan));
+  transform: scaleX(0);
+  transition: transform 0.5s ease;
+}
+
+.business-card:hover::before {
+  transform: scaleX(1);
+}
+
+.business-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 50px;
+  height: 50px;
+  background: linear-gradient(135deg, transparent 50%, rgba(255,193,7,0.1) 50%);
+  transition: all 0.3s ease;
+  border-radius: 0 0 30px 0;
+}
+
+.business-card:hover::after {
+  width: 100px;
+  height: 100px;
+}
+
+.business-card:hover {
+  transform: translateY(-12px) scale(1.02);
+  box-shadow: var(--shadow-xl);
+}
+
+.business-card .card-body {
+  transition: all 0.4s ease;
+}
+
+.business-card:hover .card-body {
+  background: linear-gradient(135deg, #fffaf5, #ffffff);
+}
+
+.business-card .card-title {
+  transition: all 0.3s ease;
+  color: var(--business-navy);
+  font-size: 1.3rem;
+  font-weight: 700;
+}
+
+.business-card:hover .card-title {
+  background: linear-gradient(135deg, var(--business-gold), var(--business-premium));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.business-card .card-text {
+  color: var(--business-gray);
+  line-height: 1.7;
+  font-size: 0.95rem;
+}
+
+/* ==================== ICON CIRCLE - PULSE EFFECT ==================== */
+.icon-circle-business {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.4s ease;
+  margin-bottom: 1.5rem !important;
+  position: relative;
+}
+
+.bg-business-gold {
+  background: linear-gradient(135deg, var(--business-gold), var(--business-premium));
+  box-shadow: var(--glow-gold);
+}
+
+.business-card:hover .icon-circle-business {
+  transform: scale(1.15) rotate(5deg);
+  box-shadow: 0 0 30px rgba(255,193,7,0.6);
+}
+
+.icon-circle-business i {
+  transition: all 0.4s ease;
+  font-size: 2.2rem;
+}
+
+.business-card:hover .icon-circle-business i {
+  transform: scale(1.1);
+  filter: drop-shadow(0 0 5px rgba(255,255,255,0.5));
+}
+
+/* ==================== ABOUT SECTION - FULLY ROUNDED ==================== */
+.about-section-business {
+  background: linear-gradient(135deg, var(--business-navy) 0%, #0a0a3a 50%, var(--business-blue) 100%);
+  position: relative;
+  overflow: hidden;
+  padding: 5rem 0;
+  margin: 30px 0;
+  border-radius: 40px;
+  box-shadow: var(--shadow-lg);
+}
+
+.about-section-business::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(255,193,7,0.08) 0%, transparent 70%);
+  animation: slowRotate 30s linear infinite;
+}
+
+@keyframes slowRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.about-card-business {
+  position: relative;
+  z-index: 1;
+  backdrop-filter: blur(12px);
+  background: rgba(255, 255, 255, 0.96) !important;
+  border-radius: 35px !important;
+  transition: all 0.4s ease;
+  border: none !important;
+  overflow: hidden;
+  margin: 20px;
+}
+
+.about-card-business:hover {
+  transform: scale(1.02);
+  box-shadow: var(--shadow-xl);
+  background: rgba(255, 255, 255, 0.98) !important;
+}
+
+.about-text {
+  color: var(--business-gray);
+  line-height: 1.9;
+  font-size: 1rem;
+  transition: color 0.3s ease;
+}
+
+.about-card-business:hover .about-text {
+  color: var(--business-navy);
+}
+
+/* About section headings stay visible */
+.about-card-business .business-title-gold,
+.about-card-business h1 {
+  color: var(--business-gold) !important;
+  background: none;
+  -webkit-background-clip: unset;
+  background-clip: unset;
+}
+
+/* ==================== TRUST BADGE - SHIMMER EFFECT ==================== */
+.trust-badge {
+  display: inline-flex;
+  align-items: center;
+  background: linear-gradient(135deg, var(--business-gold), var(--business-premium));
+  padding: 12px 30px;
+  border-radius: 50px;
+  font-weight: 700;
+  color: var(--business-navy);
+  box-shadow: var(--glow-gold);
+  gap: 10px;
+  position: relative;
+  overflow: hidden;
+}
+
+.trust-badge::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent);
+  animation: shimmer 3s infinite;
+}
+
+@keyframes shimmer {
+  0% { left: -100%; }
+  100% { left: 200%; }
+}
+
+.trust-badge i {
+  font-size: 1.2rem;
+  animation: bounce 2s ease-in-out infinite;
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+.text-gold {
+  color: var(--business-gold) !important;
+}
+
+/* ==================== UNDERLINE - EXPANDING EFFECT ==================== */
+.underline-business {
+  width: 80px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--business-gold), var(--business-premium));
+  margin: 20px auto;
+  border-radius: 3px;
+  position: relative;
+  transition: width 0.5s ease;
+}
+
+.section-header:hover .underline-business {
+  width: 120px;
+}
+
+.underline-business::before,
+.underline-business::after {
+  content: '';
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--business-gold);
+  top: -3.5px;
+  animation: pulseDot 2s ease-in-out infinite;
+}
+
+.underline-business::before { left: -15px; }
+.underline-business::after { right: -15px; }
+
+@keyframes pulseDot {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.3); }
+}
+
+/* ==================== FACILITIES SECTION - FULLY ROUNDED ==================== */
+#facilities {
+  background: linear-gradient(135deg, var(--business-light-gray) 0%, #ffffff 100%);
+  padding: 4rem 0;
+  border-radius: 40px;
+  margin: 30px 0;
+  box-shadow: var(--shadow-md);
+}
+
+#facilities .section-title h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, var(--business-navy), var(--business-blue));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Facility Cards Hover Effect */
+#facilities .card {
+  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  border: none;
+  border-radius: 25px !important;
+  overflow: hidden;
+}
+
+#facilities .card:hover {
+  transform: translateY(-8px);
+  box-shadow: var(--shadow-lg);
+}
+
+#facilities .card-img-top {
+  transition: transform 0.6s ease;
+  border-radius: 25px 25px 0 0;
+}
+
+#facilities .card:hover .card-img-top {
+  transform: scale(1.05);
+}
+
+/* ==================== CARD ANIMATIONS - STAGGERED ==================== */
+.business-card {
+  animation: fadeInUpScale 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) backwards;
+}
+
+.business-card:nth-child(1) { animation-delay: 0.1s; }
+.business-card:nth-child(2) { animation-delay: 0.2s; }
+.business-card:nth-child(3) { animation-delay: 0.3s; }
+.business-card:nth-child(4) { animation-delay: 0.4s; }
+.business-card:nth-child(5) { animation-delay: 0.5s; }
+.business-card:nth-child(6) { animation-delay: 0.6s; }
+
+@keyframes fadeInUpScale {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ==================== ANIMATE TEXT ==================== */
+.animate-text {
+  animation: slideUpGlow 1s ease-out backwards;
+}
+
+@keyframes slideUpGlow {
+  from {
+    opacity: 0;
+    transform: translateY(40px);
+    filter: blur(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+@media (max-width: 768px) {
+  body {
+    padding: 10px;
+  }
+  
+  .hero-section {
+    min-height: 70vh;
+    border-radius: 30px;
+  }
+  
+  .hero-section h1 {
+    font-size: 2rem !important;
+  }
+  
+  .hero-section h4 {
+    font-size: 1rem;
+  }
+  
+  .hero-section h6 {
+    font-size: 0.8rem;
+  }
+  
+  .business-title {
+    font-size: 1.8rem;
+  }
+  
+  .business-card {
+    margin-bottom: 25px;
+    border-radius: 25px !important;
+  }
+  
+  .about-card-business .card-body {
+    padding: 25px !important;
+  }
+  
+  .about-text {
+    font-size: 0.9rem !important;
+  }
+  
+  .trust-badge {
+    font-size: 0.8rem;
+    padding: 8px 20px;
+  }
+  
+  .btn-business {
+    padding: 12px 25px !important;
+    font-size: 1rem;
+  }
+  
+  .icon-circle-business {
+    width: 60px;
+    height: 60px;
+  }
+  
+  .icon-circle-business i {
+    font-size: 1.5rem;
+  }
+  
+  #facilities .section-title h1 {
+    font-size: 1.8rem;
+  }
+  
+  .underline-business::before,
+  .underline-business::after {
+    width: 6px;
+    height: 6px;
+    top: -2px;
+  }
+  
+  .underline-business::before { left: -10px; }
+  .underline-business::after { right: -10px; }
+  
+  .features-section-business,
+  .about-section-business,
+  #facilities {
+    border-radius: 25px;
+  }
+}
+
+/* Tablet Devices */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .hero-section h1 {
+    font-size: 2.5rem !important;
+  }
+  
+  .business-card .card-title {
+    font-size: 1.1rem;
+  }
+  
+  .business-card .card-text {
+    font-size: 0.85rem;
+  }
+  
+  .features-section-business,
+  .about-section-business,
+  #facilities,
+  .hero-section {
+    border-radius: 35px;
+  }
+}
+
+/* ==================== CUSTOM SCROLLBAR - PREMIUM ==================== */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--business-light-gray);
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, var(--business-gold), var(--business-premium));
+  border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, var(--business-premium), var(--business-gold));
+}
+
+/* ==================== SMOOTH SCROLL ==================== */
+html {
+  scroll-behavior: smooth;
+}
+
+/* ==================== LOADING ANIMATION ==================== */
+@keyframes pageLoad {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+body {
+  animation: pageLoad 0.5s ease-out;
+}
+/* ==================== LOGOUT SUCCESS POPUP ==================== */
+.logout-success-modal .modal-content {
+  background: linear-gradient(135deg, #0a0a0a, #1a1a2e);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: modalSlideIn 0.4s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.logout-modal-header {
+  background: rgba(255, 193, 7, 0.1);
+  border-bottom: 1px solid rgba(255, 193, 7, 0.2);
+  padding: 1rem 1.5rem;
+}
+
+.logout-modal-header .modal-title {
+  color: #ffc107;
+  font-weight: 600;
+}
+
+.logout-modal-header .btn-close {
+  filter: brightness(0) invert(1);
+}
+
+.logout-modal-body {
+  text-align: center;
+  padding: 2rem;
+  color: #ffffff;
+}
+
+.logout-success-icon {
+  width: 70px;
+  height: 70px;
+  background: linear-gradient(135deg, #28a745, #20c997);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  animation: bounceIcon 0.5s ease;
+}
+
+@keyframes bounceIcon {
+  0% { transform: scale(0); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.logout-success-icon i {
+  font-size: 2rem;
+  color: white;
+}
+
+.logout-modal-body h3 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #ffc107;
+  margin-bottom: 0.5rem;
+}
+
+.logout-modal-body p {
+  color: #a0a0a0;
+  margin-bottom: 0.3rem;
+}
+
+.logout-modal-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem 1.5rem;
+  justify-content: center;
+}
+
+.logout-success-btn {
+  background: linear-gradient(135deg, #ffc107, #e0a800);
+  border: none;
+  border-radius: 10px;
+  padding: 0.6rem 1.5rem;
+  font-weight: 600;
+  color: #0a0a0a;
+  transition: all 0.3s ease;
+}
+
+.logout-success-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 193, 7, 0.3);
+}
+
+/* ==================== WELCOME POPUP MODAL ==================== */
+.welcome-popup-modal .modal-content {
+  background: linear-gradient(135deg, #0a0a0a, #1a1a2e);
+  border: 1px solid rgba(255, 193, 7, 0.3);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+  animation: modalSlideIn 0.4s ease-out;
+}
+
+.welcome-modal-header {
+  background: rgba(255, 193, 7, 0.1);
+  border-bottom: 1px solid rgba(255, 193, 7, 0.2);
+  padding: 1rem 1.5rem;
+}
+
+.welcome-modal-header .modal-title {
+  color: #ffc107;
+  font-weight: 600;
+}
+
+.welcome-modal-header .btn-close {
+  filter: brightness(0) invert(1);
+}
+
+.welcome-modal-body {
+  text-align: center;
+  padding: 2rem;
+  color: #ffffff;
+}
+
+.welcome-success-icon {
+  width: 70px;
+  height: 70px;
+  background: linear-gradient(135deg, #28a745, #20c997);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+  animation: bounceIcon 0.5s ease;
+}
+
+.welcome-success-icon i {
+  font-size: 2rem;
+  color: white;
+}
+
+.welcome-modal-body h3 {
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #ffc107;
+  margin-bottom: 0.5rem;
+}
+
+.welcome-modal-body p {
+  color: #a0a0a0;
+  margin-bottom: 0.3rem;
+}
+
+.user-name-highlight {
+  background: linear-gradient(135deg, #ffc107, #e0a800);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.welcome-modal-footer {
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 1rem 1.5rem;
+  justify-content: center;
+}
+
+.welcome-success-btn {
+  background: linear-gradient(135deg, #ffc107, #e0a800);
+  border: none;
+  border-radius: 10px;
+  padding: 0.6rem 1.5rem;
+  font-weight: 600;
+  color: #0a0a0a;
+  transition: all 0.3s ease;
+}
+
+.welcome-success-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 193, 7, 0.3);
+}
