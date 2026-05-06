@@ -139,14 +139,7 @@ const Home = () => {
               <p className="card-text lead my-3 about-text">
                 When you choose Omkar Steel Fabricators, you're not just getting a service provider—you're gaining a partner dedicated to helping you achieve success with the highest level of professionalism and quality.
               </p>
-              <div className="text-center mt-4">
-                <div className="trust-badge">
-                  <i className="bi bi-patch-check-fill text-gold me-2"></i>
-                  <span>ISO Certified Company</span>
-                  <i className="bi bi-patch-check-fill text-gold ms-2"></i>
-                </div>
-              </div>
-            </div>
+             </div>
           </div>
         </div>
       </div>

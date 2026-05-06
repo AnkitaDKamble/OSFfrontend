@@ -223,7 +223,7 @@ const Service = () => {
                       </div>
                     </div>
                     <Card.Body>
-                      <Card.Title className="service-card-title">
+                     <Card.Title className="service-card-title text-dark">
                         {service.title}
                       </Card.Title>
                       <Card.Text className="service-card-text">
@@ -231,7 +231,8 @@ const Service = () => {
                       </Card.Text>
                       <div className="service-footer">
                         <div className="price-info">
-                          <small>Starting from</small>
+                          
+                          <small >Starting from</small>
                           <strong className="price-highlight">₹{service.pricePerSquareFoot}</strong>
                           <small>per sq. ft.</small>
                         </div>

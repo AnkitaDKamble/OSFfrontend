@@ -131,7 +131,7 @@ const Aboutus = () => {
                                 </div>
                                 <div className="col-md-3 col-sm-6">
                                     <div className="stat-card">
-                                        <div className="stat-number" data-count="200">200+</div>
+                                        <div className="stat-number" data-count="200">450+</div>
                                         <div className="stat-label">Happy Clients</div>
                                     </div>
                                 </div>

@@ -19,7 +19,7 @@ const Footer = () => {
               <h4 className="footer-title mb-4">
                 <i className="bi bi-building me-2"></i>Omkar Steel Fabricators
               </h4>
-              
+
               <div className="contact-info-table">
                 <div className="contact-row">
                   <div className="contact-icon">
@@ -156,9 +156,6 @@ const Footer = () => {
                   </Link>
                   <Link className="social-icon" to="https://youtube.com" target="_blank">
                     <i className="bi bi-youtube"></i>
-                  </Link>
-                  <Link className="social-icon" to="https://linkedin.com" target="_blank">
-                    <i className="bi bi-linkedin"></i>
                   </Link>
                   <Link className="social-icon" to="https://instagram.com" target="_blank">
                     <i className="bi bi-instagram"></i>
