@@ -2,6 +2,11 @@
   "name": "osf",
   "version": "0.1.0",
   "private": true,
+  "description": "OSF Frontend Application",
+  "homepage": ".",
+  "engines": {
+    "node": "24.x"
+  },
   "dependencies": {
     "@testing-library/jest-dom": "^5.17.0",
     "@testing-library/user-event": "^13.5.0",
@@ -40,10 +45,5 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  },
-  "description": "OSF Frontend Application",
-  "engines": {
-    "node": ">=18 <21"
-  },
-  "homepage": "."
+  }
 }
