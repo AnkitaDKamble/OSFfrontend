@@ -1,0 +1,220 @@
+/* src/Components/OrderDashboard.css */
+
+:root {
+  --dashboard-black: #0a0a0a;
+  --dashboard-dark: #121212;
+  --dashboard-gold: #ffc107;
+  --dashboard-gold-hover: #e0a800;
+  --dashboard-text: #ffffff;
+  --dashboard-text-muted: #a0a0a0;
+  --dashboard-border: rgba(255, 255, 255, 0.1);
+}
+
+/* Container */
+.dashboard-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--dashboard-black) 0%, #1a1a2e 100%);
+  padding: 2rem;
+}
+
+/* Header */
+.dashboard-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.dashboard-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--dashboard-gold);
+  margin-bottom: 0.5rem;
+}
+
+.dashboard-title i {
+  font-size: 1.8rem;
+}
+
+.title-underline {
+  width: 80px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--dashboard-gold), transparent);
+  margin: 0 auto 1rem;
+  border-radius: 3px;
+}
+
+.dashboard-subtitle {
+  color: var(--dashboard-text-muted);
+  font-size: 0.95rem;
+}
+
+/* Alerts */
+.custom-alert {
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  border-left: 4px solid;
+}
+
+/* Loading */
+.loading-container {
+  padding: 3rem;
+  background: rgba(18, 18, 18, 0.5);
+  border-radius: 20px;
+}
+
+/* Table */
+.dashboard-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: rgba(18, 18, 18, 0.95);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
+.dashboard-table thead tr {
+  background: linear-gradient(135deg, var(--dashboard-black), #1a1a2e);
+  border-bottom: 2px solid var(--dashboard-gold);
+}
+
+.dashboard-table th {
+  padding: 1rem;
+  color: var(--dashboard-gold);
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  text-align: left;
+}
+
+.dashboard-table td {
+  padding: 1rem;
+  color: var(--dashboard-text);
+  border-bottom: 1px solid var(--dashboard-border);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.dashboard-table tr:hover {
+  background: rgba(255, 193, 7, 0.05);
+}
+
+/* Column styles */
+.order-id {
+  font-family: monospace;
+  font-size: 0.8rem;
+  color: var(--dashboard-gold);
+}
+
+.amount {
+  color: var(--dashboard-gold);
+  font-weight: 600;
+}
+
+.feedback {
+  max-width: 200px;
+  word-wrap: break-word;
+  color: var(--dashboard-text-muted);
+}
+
+/* Status badge */
+.status-badge {
+  padding: 0.3rem 0.9rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+/* 🔥 Dropdown (BLACK BG + WHITE TEXT) */
+.status-select {
+  background-color: #121212 !important;
+  color: #ffffff !important;
+  border: 1px solid var(--dashboard-border);
+  border-radius: 8px;
+  padding: 0.5rem 0.8rem;
+  cursor: pointer;
+
+  width: 180px;
+  min-width: 160px;
+
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+/* Dropdown options */
+.status-select option {
+  background-color: #121212 !important;
+  color: #ffffff !important;
+}
+
+/* Focus */
+.status-select:focus {
+  outline: none;
+  border-color: var(--dashboard-gold);
+  box-shadow: 0 0 0 1px var(--dashboard-gold);
+}
+
+/* Submit button */
+.submit-container {
+  text-align: right;
+  margin-top: 1.5rem;
+}
+
+.submit-btn {
+  background: var(--dashboard-gold);
+  border: none;
+  padding: 0.6rem 1.5rem;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #000;
+  font-weight: 600;
+  transition: 0.3s;
+}
+
+.submit-btn:hover {
+  background: var(--dashboard-gold-hover);
+}
+
+/* Empty state */
+.empty-state {
+  text-align: center;
+  padding: 4rem;
+  background: rgba(18, 18, 18, 0.5);
+  border-radius: 20px;
+}
+
+.empty-state i {
+  font-size: 4rem;
+  color: var(--dashboard-text-muted);
+  margin-bottom: 1rem;
+}
+
+.empty-state p {
+  color: var(--dashboard-text-muted);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .dashboard-container {
+    padding: 1rem;
+  }
+
+  .dashboard-title {
+    font-size: 1.5rem;
+  }
+
+  .dashboard-table th,
+  .dashboard-table td {
+    padding: 0.5rem;
+    font-size: 0.75rem;
+  }
+
+  .status-select {
+    width: 140px;
+  }
+
+  .feedback {
+    max-width: 120px;
+  }
+}
