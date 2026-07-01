@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Container, Form, Button, Modal, Alert, Spinner } from 'react-bootstrap';
+import { Form, Button, Modal, Alert, Spinner } from 'react-bootstrap';
 import './Contactus.css';
 
 const EnquiryForm = () => {
