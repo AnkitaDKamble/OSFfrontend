@@ -8,7 +8,7 @@ import './Signup.css';
 const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
 
 const SignUp = () => {
-  const location = useLocation();
+  //const location = useLocation();
   const navigate = useNavigate();
 
   const [name, setName] = useState("");

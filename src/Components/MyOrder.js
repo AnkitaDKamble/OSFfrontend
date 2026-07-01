@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Modal, Button, Form, Spinner, Alert } from 'react-bootstrap';
+import { Modal, Form, Spinner, Alert } from 'react-bootstrap';
 import './MyOrder.css';
 
 function MyOrders() {
