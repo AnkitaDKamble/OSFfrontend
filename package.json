@@ -39,6 +39,7 @@
     "eject": "react-scripts eject",
     "postinstall": "npx update-browserslist-db@latest",
     "vercel-build": "npx update-browserslist-db@latest && npm run build"
+    
   },
   "eslintConfig": {
     "extends": [

@@ -1,14 +1,13 @@
 import React, { useState } from "react";
 import { Modal, Button } from "react-bootstrap";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
-import './Signup.css';
+import "./Signup.css";
 
-// ✅ API URL (build-time injected)
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+// API URL
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5000";
 
 const SignUp = () => {
-  
   const navigate = useNavigate();
 
   const [name, setName] = useState("");
@@ -26,21 +25,18 @@ const SignUp = () => {
   const validate = () => {
     const errs = {};
 
-    // Name validation
     if (!name.trim()) errs.name = "Name is required";
 
-    // Email validation (optional)
-    if (email && !/\S+@\S+\.\S+/.test(email))
+    if (email && !/\S+@\S+\.\S+/.test(email)) {
       errs.email = "Email is invalid";
+    }
 
-    // Mobile validation
-    if (!/^\d{10}$/.test(mobile))
+    if (!/^\d{10}$/.test(mobile)) {
       errs.mobile = "Mobile number must be 10 digits";
+    }
 
-    // Address validation
     if (!addr.trim()) errs.addr = "Address is required";
 
-    // Password validation - REQUIRED with min 1 and max 20
     if (!password) {
       errs.password = "Password is required";
     } else if (password.length < 1) {
@@ -49,8 +45,9 @@ const SignUp = () => {
       errs.password = "Password must not exceed 20 characters";
     }
 
-    // Confirm password validation
-    if (password !== confirmPassword) {
+    if (!confirmPassword) {
+      errs.confirmPassword = "Confirm password is required";
+    } else if (password !== confirmPassword) {
       errs.confirmPassword = "Passwords do not match";
     }
 
@@ -66,39 +63,36 @@ const SignUp = () => {
     setIsLoading(true);
     setErrors({});
 
-    // Create payload - only include email if not empty
     const payload = {
       username: name.trim(),
       mobile: mobile.trim(),
       addr: addr.trim(),
       password: password,
     };
-    
-    // Only add email if it has value
+
     if (email && email.trim()) {
       payload.email = email.trim();
     }
 
+    console.log("API_URL:", API_URL);
     console.log("Sending payload:", payload);
 
     try {
-      const response = await axios.post(`${API_URL}/addr`, payload, {
+      const response = await axios.post(`${API_URL}/api/signup`, payload, {
         headers: {
-          'Content-Type': 'application/json'
-        }
+          "Content-Type": "application/json",
+        },
       });
 
       console.log("Signup success:", response.data);
 
       setShowSuccess(true);
-      // Reset form
       setName("");
       setEmail("");
       setMobile("");
       setAddr("");
       setPassword("");
       setConfirmPassword("");
-      
     } catch (error) {
       console.error("Signup error full:", error);
       console.error("Error response:", error.response);
@@ -106,15 +100,18 @@ const SignUp = () => {
 
       if (error.response) {
         setErrors({
-          general: error.response.data.message || `Signup failed: ${error.response.status}`
+          general:
+            error.response.data.message ||
+            `Signup failed: ${error.response.status}`,
         });
       } else if (error.request) {
         setErrors({
-          general: "Cannot connect to server. Please check if backend is running on port 5000."
+          general:
+            "Cannot connect to server. Please check backend URL / Vercel deployment.",
         });
       } else {
         setErrors({
-          general: error.message || "An error occurred. Please try again."
+          general: error.message || "An error occurred. Please try again.",
         });
       }
     } finally {
@@ -157,7 +154,9 @@ const SignUp = () => {
             </label>
             <input
               type="text"
-              className={`form-control signup-input ${errors.name ? 'is-invalid' : ''}`}
+              className={`form-control signup-input ${
+                errors.name ? "is-invalid" : ""
+              }`}
               value={name}
               onChange={handleNameChange}
               placeholder="Enter your full name"
@@ -175,7 +174,9 @@ const SignUp = () => {
             </label>
             <input
               type="email"
-              className={`form-control signup-input ${errors.email ? 'is-invalid' : ''}`}
+              className={`form-control signup-input ${
+                errors.email ? "is-invalid" : ""
+              }`}
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="Enter your email"
@@ -191,14 +192,18 @@ const SignUp = () => {
             </label>
             <input
               type="tel"
-              className={`form-control signup-input ${errors.mobile ? 'is-invalid' : ''}`}
+              className={`form-control signup-input ${
+                errors.mobile ? "is-invalid" : ""
+              }`}
               value={mobile}
               onChange={handleMobileChange}
               placeholder="Enter 10 digit mobile number"
               maxLength={10}
               required
             />
-            {errors.mobile && <div className="error-message">{errors.mobile}</div>}
+            {errors.mobile && (
+              <div className="error-message">{errors.mobile}</div>
+            )}
           </div>
 
           {/* Address Field */}
@@ -207,7 +212,9 @@ const SignUp = () => {
               <i className="bi bi-geo-alt-fill me-2"></i>Address
             </label>
             <textarea
-              className={`form-control signup-textarea ${errors.addr ? 'is-invalid' : ''}`}
+              className={`form-control signup-textarea ${
+                errors.addr ? "is-invalid" : ""
+              }`}
               value={addr}
               onChange={(e) => setAddr(e.target.value)}
               placeholder="Enter your full address"
@@ -218,40 +225,46 @@ const SignUp = () => {
             {errors.addr && <div className="error-message">{errors.addr}</div>}
           </div>
 
-          {/* Password Field - REQUIRED */}
+          {/* Password Field */}
           <div className="form-group">
             <label className="form-label">
               <i className="bi bi-lock-fill me-2"></i>Password
-              
             </label>
             <input
               type="password"
-              className={`form-control signup-input ${errors.password ? 'is-invalid' : ''}`}
+              className={`form-control signup-input ${
+                errors.password ? "is-invalid" : ""
+              }`}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Enter password"
               maxLength={20}
               required
             />
-            {errors.password && <div className="error-message">{errors.password}</div>}
-            
+            {errors.password && (
+              <div className="error-message">{errors.password}</div>
+            )}
           </div>
 
-          {/* Confirm Password Field - REQUIRED */}
+          {/* Confirm Password Field */}
           <div className="form-group">
             <label className="form-label">
               <i className="bi bi-shield-lock-fill me-2"></i>Confirm Password
             </label>
             <input
               type="password"
-              className={`form-control signup-input ${errors.confirmPassword ? 'is-invalid' : ''}`}
+              className={`form-control signup-input ${
+                errors.confirmPassword ? "is-invalid" : ""
+              }`}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               placeholder="Confirm your password"
               maxLength={20}
               required
             />
-            {errors.confirmPassword && <div className="error-message">{errors.confirmPassword}</div>}
+            {errors.confirmPassword && (
+              <div className="error-message">{errors.confirmPassword}</div>
+            )}
           </div>
 
           {errors.general && (
@@ -261,11 +274,7 @@ const SignUp = () => {
             </div>
           )}
 
-          <button
-            type="submit"
-            className="signup-btn"
-            disabled={isLoading}
-          >
+          <button type="submit" className="signup-btn" disabled={isLoading}>
             {isLoading ? (
               <>
                 <span className="spinner-border spinner-border-sm me-2"></span>
@@ -281,10 +290,7 @@ const SignUp = () => {
 
           <div className="signup-footer">
             Already have an account?{" "}
-            <Link
-              to="/login"
-              className="login-link"
-            >
+            <Link to="/login" className="login-link">
               Login here
             </Link>
           </div>
@@ -292,7 +298,12 @@ const SignUp = () => {
       </div>
 
       {/* Success Modal */}
-      <Modal show={showSuccess} onHide={handleClose} centered className="success-modal">
+      <Modal
+        show={showSuccess}
+        onHide={handleClose}
+        centered
+        className="success-modal"
+      >
         <Modal.Header closeButton className="success-modal-header">
           <Modal.Title>
             <i className="bi bi-check-circle-fill me-2"></i>
